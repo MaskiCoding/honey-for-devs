@@ -92,4 +92,37 @@ function savingsFactor(cfg, mode) {
   return R < 1 ? R / (1 - R) : 0;
 }
 
-module.exports = { loadConfig, estimate, savingsFactor };
+// The savings ratio WITH its provenance. The number is a modelled counterfactual from a
+// committed bench stamp — it was never measured for the session being reported — so this
+// returns the label callers must print alongside it.
+//
+// Returns null when no committed stamp covers the session's model. A tool that reports
+// its own savings against a counterfactual it never ran is grading its own homework;
+// no number is the honest output there, not an extrapolated one.
+function savingsInfo(cfg, mode, model) {
+  const prov = cfg.savings_provenance || {};
+  const byModel = prov.by_model || {};
+  const key = model ? Object.keys(byModel).find((k) => String(model).toLowerCase().includes(k)) : null;
+  if (!key) return null;
+
+  const src = byModel[key];
+  const scale = (cfg.savings_vs_baseline || {})[mode];
+  const full = (cfg.savings_vs_baseline || {}).full;
+  if (!scale || !full) return null;
+
+  const R = src.ratio * (scale / full); // lite/ultra keep their historical ratio to full
+  const measured = mode === prov.measured_mode;
+  return {
+    R,
+    k: R < 1 ? R / (1 - R) : 0,
+    measured,
+    stamp: src.stamp || prov.stamp,
+    model: src.model,
+    p: src.p,
+    label: measured
+      ? `modeled from ${src.stamp || prov.stamp} (${src.model}, n=${prov.n}, p=${src.p}) — not measured for this session`
+      : `extrapolated from the '${prov.measured_mode}' figure in ${src.stamp || prov.stamp} — not measured for this session, and this mode was never benchmarked`,
+  };
+}
+
+module.exports = { loadConfig, estimate, savingsFactor, savingsInfo };

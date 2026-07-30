@@ -20,6 +20,9 @@ so "which honey vs which competitors" is pinned and reproducible per result set.
 
 Per task × variant × run:
 
+> Endpoints, statistics and the run ladder are pre-registered in
+> [`METHODOLOGY.md`](METHODOLOGY.md). Read that before quoting a number.
+
 1. **Objective correctness** — the code block is extracted from the reply, written to disk,
    and run against a real unit test (`tasks/<id>/test.{py,js}`). Pass = exit 0. No vibes.
 2. **Quality** — an LLM judge scores the reply 0–100 on correctness/completeness/clarity
@@ -31,13 +34,20 @@ Per task × variant × run:
    the headline is the **median**, which cancels a single judge's self-preference, and the
    report carries the per-record **±sd** so a gap inside the noise band isn't sold as a win.
    `src/rejudge.js` re-scores saved replies with any panel/rubric without regenerating.
-3. **Tokens** — input/output/cache from the API `usage`.
+3. **Tokens** — input/output/cache from the API `usage`, kept as four separate classes
+   (fresh input, cache creation, cache read, output) because they bill at different rates.
 4. **CO₂** — via the repo's EcoLogits port ([`hooks/eco.js`](../hooks/eco.js)), from output tokens.
-5. **$** — reported two ways: **`$ (cached)`** (steady state, skill prompt prompt-cached) and
-   **`$ (cold)`** (first turn, skill prompt billed fresh). Rates in [`pricing.json`](pricing.json).
+5. **$** — reported two ways: **`$ (cached)`** (steady state — cache reads at ≈10% of input,
+   cache *creation* charged at 1.25×) and **`$ (cold)`** (every input token billed fresh).
+   Rates and cache multipliers in [`pricing.json`](pricing.json).
 
 The headline reduction metric is **output tokens** — the volume each skill directly controls,
 and the one number that doesn't depend on caching assumptions.
+
+Every reported delta is **paired per task**: runs collapse by median, tasks pair against the
+control arm, and the column is the median of those paired deltas with a two-sided Wilcoxon
+signed-rank `p`. A ratio of arm totals is still printed for volume, but it is not the claim —
+it is dominated by whichever task happens to be longest. See [`METHODOLOGY.md`](METHODOLOGY.md).
 
 ### Why output tokens, not "billed tokens"
 
@@ -155,9 +165,12 @@ npm run gate candidate full-opus48       # compare against the pinned reference 
 ```
 
 `src/gate.js` compares every variant present in both stamps and exits non-zero if tests
-drop > `GATE_TESTS` (0.02), judge drops > `GATE_JUDGE` (5 pts), or a variant's
-output-vs-baseline reduction shrinks by > `GATE_OUTPUT` (10 pts). Mock stamps only gate
-against mock, live against live. CI (`.github/workflows/ci.yml`) runs the unit tests,
+drop > `GATE_TESTS` (0.02), judge drops > `GATE_JUDGE` (5 pts), the variant's **paired**
+output-vs-baseline reduction shrinks by > `GATE_OUTPUT` (10 pts), or its paired median
+agent-turn count grows by > `GATE_TURNS` (10%). The turn rule only fires on stamps that
+record `iterations` (the Cline harness bench) and is the one that catches a retry tax:
+an edit that cuts output but buys an extra agent turn has saved nothing. Mock stamps only
+gate against mock, live against live. CI (`.github/workflows/ci.yml`) runs the unit tests,
 `verify-tests`, the mock pipeline for all three benches, and a gate smoke test on every
 push/PR — the live gate stays a local, keyed step.
 
@@ -269,57 +282,74 @@ Add a `code` task: drop a folder in `tasks/` with `prompt.md`, `meta.json`, a `t
 ## Results
 
 Full cross-provider run — `plain` rubric, 4-judge cross-family panel
-(opus + sonnet + haiku + gpt-5.5), 23 tasks, 3 runs. Per cell: **quality** (panel-median judge
-as % of that provider's own baseline) · **output tokens vs baseline**. ⚠ flags tests < 100%.
-([`results/cross-provider.md`](results/cross-provider.md))
+(opus + sonnet + haiku + gpt-5.5), 23 tasks, 3 runs, stamps `full-opus48` / `full-gpt55`.
 
-### Code
+Every figure is a **paired per-task median** vs `baseline` with a two-sided Wilcoxon `p`;
+judge is an exact sign test over per-task wins/losses/ties. `(ns)` = misses p<0.05, i.e. a
+tie. Regenerate any of it offline, no API spend:
 
-| Variant | Opus 4.8 | gpt-5.5 |
-|---------|----------|---------|
-| baseline | 96 (100%) · +0% | 98 (100%) · +0% |
-| caveman | 96 (101%) · −37% | 98 (100%) · −51% ⚠98% |
-| ponytail | 95 (99%) · **+24%** | 93 (96%) · **+56%** |
-| honey | 94 (98%) · **−49%** | 97 (99%) · **−39%** |
+```bash
+node src/report.js --stamp full-opus48            # whole suite
+node src/report.js --stamp full-opus48 --by-type  # per tier
+```
 
-### User-facing
+### Opus 4.8 (`full-opus48`)
 
-| Variant | Opus 4.8 | gpt-5.5 |
-|---------|----------|---------|
-| baseline | 91 (100%) · +0% ⚠95% | 93 (100%) · +0% |
-| caveman | 90 (99%) · −18% ⚠90% | 93 (100%) · −6% |
-| ponytail | 86 (95%) · −33% ⚠81% | 93 (100%) · −16% |
-| honey | 92 (101%) · −6% | 93 (100%) · −12% ⚠95% |
+| Variant | Δ output | Δ new-input | Δ cost | Judge W/L/T | sign p | Tests |
+|---------|---------:|------------:|-------:|------------:|-------:|------:|
+| caveman | **−22%** (p<0.001) | −1% | −10% (p<0.001) | 3/16/2 | **0.004** | 94% |
+| ponytail | −7% (ns, p=0.267) | +342% | +18% (ns) | 1/19/1 | **<0.001** | 90% |
+| honey | **−29%** (p=0.020) | −1% | −21% (ns, p=0.104) | 8/11/2 | 0.648 | **100%** |
+| honey-design | **−29%** (p=0.003) | −1% | −17% (p=0.017) | 11/7/3 | 0.481 | **100%** |
 
-### Agent-to-agent (Lever 3)
+### gpt-5.5 (`full-gpt55`)
 
-| Variant | Opus 4.8 | gpt-5.5 |
-|---------|----------|---------|
-| baseline | 98 (100%) · +0% ⚠83% | 100 (100%) · +0% |
-| caveman | 97 (98%) · −23% ⚠67% | 100 (100%) · −11% |
-| ponytail | 95 (97%) · −22% ⚠50% | 100 (100%) · −11% |
-| honey | 100 (102%) · **−51%** | 100 (100%) · **−39%** |
+| Variant | Δ output | Δ new-input | Δ cost | Judge W/L/T | sign p | Tests |
+|---------|---------:|------------:|-------:|------------:|-------:|------:|
+| caveman | −14% (p=0.020) | +865% | +12% (ns) | 8/3/10 | 0.227 | 99% |
+| ponytail | +35% (ns, p=0.584) | +315% | +42% (ns) | 4/15/2 | **0.019** | 100% |
+| honey | **−20%** (p=0.004) | +573% | +14% (ns, p=0.820) | 6/8/7 | 0.791 | 99% |
+| honey-design | −12% (p<0.001) | +728% | +17% (ns) | 8/6/7 | 0.791 | 97% |
 
-### Aggregate (all 23 tasks, per provider)
+### `honey` by tier
 
-| | Opus tests | Opus judge ±sd | Opus out | gpt tests | gpt judge ±sd | gpt out |
-|---|-----------:|---------------:|---------:|----------:|--------------:|--------:|
-| baseline | 97% | 94 ±7 | +0% | 100% | 96 ±3 | +0% |
-| honey | **100%** | 93 ±6 | −15% | 99% | 96 ±4 | −19% |
-| ponytail | 90% | 92 ±5 | −22% | 100% | 93 ±11 | +1% |
-| caveman | 94% | 94 ±4 | −22% | 99% | 96 ±3 | −17% |
+Δ output · judge W/L/T with its sign-test `p`:
+
+| Tier | tasks | Opus 4.8 | gpt-5.5 |
+|------|------:|---------:|--------:|
+| code | 14 | **−39%** (p=0.007) · 2/11/1 (**p=0.022**) | **−24%** (p=0.024) · 5/4/5 (p=1.000) |
+| user-facing | 7 | −7% (ns, p=0.673) · 6/0/1 (**p=0.031**) | −10% (ns, p=0.151) · 1/4/2 (p=0.375) |
+| agent-to-agent | 2 | −49% (n=2, no p) | −40% (n=2, no p) |
+
+Full tables for every variant: `node src/report.js --stamp <stamp> --by-type`.
 
 **What it says** — honest reading:
 
-- **`honey` is the only variant that never regresses tests** (100% Opus / 99% gpt) while cutting
-  output on every tier, and the only one **lossless on the adversarial relay** (others drop to
-  50–67% on Opus). This is the objective, judge-independent result.
-- **Quality is a tie, not a gain.** With ±sd of 3–7, honey ≈ baseline everywhere; the win is
-  fewer tokens at **no measurable quality cost**, not higher quality.
-- **`ponytail` inflates code tokens** (+24% Opus / +56% gpt) — the clearest competitor failure.
-- **The dollar win depends on caching.** On a *cold* session honey can cost **more** than
-  baseline (Opus `$ (cold)` ≈ $8.66 vs $7.02) — the skill prompt as fresh input outweighs the
-  output saving; it only pays off once the prompt is cached.
+- **`honey` is the only variant that never regresses tests** (100% Opus / 99% gpt) while
+  cutting output on both providers, and the only one **lossless on the adversarial relay**
+  (others drop to 50–67% recovery on Opus). Objective, judge-independent.
+- **Quality is a tie overall, and now it's tested** — p=0.648 (Opus) / 0.791 (gpt). But the
+  whole-suite tie is two opposing effects cancelling on Opus: honey **wins user-facing
+  6/0/1 (p=0.031)** and **loses the code judge 2/11/1 (p=0.022)**. Code tests are 100% for
+  every variant there, so the code dip is the judge penalising terse style, not a
+  correctness regression — and it does not replicate on gpt-5.5 (p=1.000). Suggestive, not
+  established.
+- **The tier split is where the output number lives.** −39% on code, a **statistical tie on
+  user-facing** work. The visual carve-out is doing exactly what it claims — and "−29%
+  overall" should never be quoted as if it applied to a landing page.
+- **The dollar saving does not clear significance.** −21% on Opus is p=0.104 (ns) and gpt is
+  +14% (ns). 23 tasks is not enough power for a cost claim, and the honest statement is
+  "output is down, cost is unproven." On a *cold* session honey still costs **more** than
+  baseline (Opus `$ (cold)` $8.74 vs $7.02).
+- **Two previously published numbers were outlier artifacts.** `ponytail` at "−22% output"
+  was a ratio of arm totals; paired, it is −7% (ns) on Opus and **+35%** on gpt — no
+  reduction at all. And `caveman`'s judge *mean* ties baseline exactly (94 vs 94) while the
+  sign test shows it losing **16 of 23 tasks** (p=0.004). A mean-of-means hid both.
+- **Caching decides whether the output cut reaches the bill.** On Opus the skill prompt is
+  written to cache once and read back cheaply, so the typical task pays ≈no extra new input
+  (−1%). On gpt every recorded `cache_read` is 0, so each task pays the prompt fresh
+  (+573%) and the cut never reaches the invoice. Why OpenAI's automatic caching never
+  engaged is unresolved — see [`METHODOLOGY.md`](METHODOLOGY.md#known-limits).
 
 ## Combined report
 

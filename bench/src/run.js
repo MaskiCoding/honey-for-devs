@@ -287,26 +287,39 @@ function median(xs) {
   };
   fs.writeFileSync(path.join(outDir, "results.json"), JSON.stringify({ meta, records: slim }, null, 2));
 
-  const { aggregate, table } = require("./report");
-  const rows = aggregate(records, ALL_VARIANTS.filter((v) => VARIANTS.includes(v)), MODEL);
-  const tbl = table(rows, ALL_VARIANTS.filter((v) => VARIANTS.includes(v)));
+  const { aggregate, table, pairedTable } = require("./report");
+  const shown = ALL_VARIANTS.filter((v) => VARIANTS.includes(v));
+  const rows = aggregate(records, shown, MODEL);
+  const tbl = table(rows, shown);
+  const ptbl = pairedTable(records, shown, MODEL);
   const md =
     `# Honey benchmark results\n\n` +
     `model: \`${MODEL}\` · judge: \`${JUDGE_MODELS.join("+")}\` · tasks: ${tasks.length} · runs: ${RUNS}` +
     `${THINKING ? ` · thinking: ${THINKING}` : ""}${MOCK ? " · **MOCK**" : ""}\n\n` +
-    `${tbl}\n\n` +
+    `## Paired (headline)\n\n${ptbl}\n\n` +
+    `Every Δ is a **per-task** delta vs \`baseline\`: runs collapse by median, tasks pair up,\n` +
+    `and the column is the median of those paired deltas. \`p\` is a two-sided Wilcoxon\n` +
+    `signed-rank test (\`—\` when fewer than 6 non-tied tasks — no significance is claimed there).\n` +
+    `\`(ns)\` marks a delta that misses p<0.05: a tie, not a win. **Judge W/L/T** counts tasks\n` +
+    `where the variant scored above / below / level with baseline, tested with an exact sign\n` +
+    `test — the right test for ordinal, noisy judge scores, and one a mean-of-means can hide.\n\n` +
+    `- **Δ output** — the headline lever: volume each skill directly controls, caching-independent.\n` +
+    `- **Δ new-input** — fresh + cache-creation tokens, the class where a skill prompt *costs*.\n` +
+    `  Cache reads are excluded: they bill at a tenth and dominate a long session regardless.\n` +
+    `- **Δ cost** — all four token classes at \`bench/pricing.json\` rates.\n\n` +
+    `## Arm totals\n\n${tbl}\n\n` +
+    `Volumes and absolute costs. The *vs base* column here is a ratio of sums and is\n` +
+    `outlier-sensitive — one long task can drive it; prefer the paired table above.\n\n` +
     `- **Tests pass** — objective: extracted code run against unit tests.\n` +
     `- **Judge ±sd** — LLM-as-judge (0-100, panel median) with per-record stdev. A judge gap\n` +
     `  inside ±sd is noise, not a quality win. Rubric: \`${process.env.JUDGE_RUBRIC || "plain"}\`.\n` +
-    `- **Output tok / Output vs base** — the headline lever: tokens each skill directly\n` +
-    `  controls. Caching-independent.\n` +
-    `- **$ (cached)** — steady state: skill prompt prompt-cached (≈10% input cost on repeat\n` +
-    `  tasks). **$ (cold)** — first-turn worst case: skill prompt billed as fresh input. Real\n` +
-    `  cost sits between, nearer cached as a session lengthens. Rates in \`bench/pricing.json\`.\n` +
+    `- **$ (cached)** — steady state: cache reads at ≈10% of input, cache *creation* charged.\n` +
+    `  **$ (cold)** — first-turn worst case: every input token billed fresh. Real cost sits\n` +
+    `  between, nearer cached as a session lengthens. Rates in \`bench/pricing.json\`.\n` +
     `- **CO₂** via EcoLogits port (\`hooks/eco.js\`), from output tokens.\n`;
   fs.writeFileSync(path.join(outDir, "report.md"), md);
 
-  console.log("\n" + tbl + "\n");
+  console.log("\n" + ptbl + "\n\n" + tbl + "\n");
   console.log(`results -> ${path.relative(REPO, outDir)}/`);
 })().catch((e) => {
   console.error("\n" + e.stack || e);

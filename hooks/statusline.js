@@ -37,19 +37,25 @@ function ecoSuffix(mode) {
 
   const perModel = tokensByModel(tx);
 
-  let gco2 = 0, tokens = 0;
+  let gco2 = 0, tokens = 0, topModel = null, topTokens = 0;
   for (const [model, out] of Object.entries(perModel)) {
     gco2 += eco.estimate(model, out, cfg).gco2;
     tokens += out;
+    if (out > topTokens) { topTokens = out; topModel = model; }
   }
   if (!tokens) return "";
 
-  const k = eco.savingsFactor(cfg, mode);
-  const usd = input.cost && input.cost.total_cost_usd;
-
   let s = ` · 🌿 ${g(gco2)} CO₂`;
-  const saved = `~${g(gco2 * k)}` + (usd ? ` · $${(usd * k).toFixed(2)}` : "");
-  if (k > 0) s += ` (saved ${saved})`;
+
+  // CO₂ is measured from this session; the savings figure is a modelled counterfactual
+  // from a committed bench stamp. Badge width can't carry the caveat, so it carries a
+  // `~` and an `est.` marker and `/honey-eco` prints the full basis. No stamp for this
+  // model -> no savings claim.
+  const sv = eco.savingsInfo(cfg, mode, topModel);
+  const usd = input.cost && input.cost.total_cost_usd;
+  if (sv && sv.k > 0) {
+    s += ` (est. saved ~${g(gco2 * sv.k)}` + (usd ? ` · $${(usd * sv.k).toFixed(2)}` : "") + ")";
+  }
   return s;
 }
 

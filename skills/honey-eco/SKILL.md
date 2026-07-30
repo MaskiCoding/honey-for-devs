@@ -1,11 +1,11 @@
 ---
 name: honey-eco
 description: >-
-  Report this session's Honey savings — output tokens, CO₂, and the estimated
-  CO₂/$ saved vs a no-Honey baseline — by running the repo's committed EcoLogits
-  port, not by guessing. Use when asked how much Honey saved, the session's
-  carbon/token footprint, or to expand the 🍯 statusline badge into a full
-  breakdown.
+  Report this session's output tokens and CO₂ by running the repo's committed
+  EcoLogits port, plus the modelled CO₂/$ saved vs a no-Honey baseline — always
+  labelled with the bench stamp it came from. Use when asked how much Honey saved,
+  the session's carbon/token footprint, or to expand the 🍯 statusline badge into a
+  full breakdown.
 license: MIT
 ---
 
@@ -22,7 +22,19 @@ node scripts/eco-session.js              # newest session
 node scripts/eco-session.js --transcript PATH --mode full
 ```
 
-Then report terse — output tokens, CO₂eq (g), and `saved (~R% vs no-Honey)` — in a line or two. Keep the exact numbers the script prints; don't round away precision.
+Then report terse — output tokens, CO₂eq (g), and the `saved` line — in a line or two. Keep the exact numbers the script prints; don't round away precision.
+
+## Two numbers, two epistemic statuses — never merge them
+
+- **CO₂eq is measured** for this session: real output tokens through the EcoLogits port.
+- **`saved` is not.** It is a *modelled counterfactual* — how many tokens a no-Honey run
+  would have emitted — taken from a committed bench stamp. Always pass through the
+  `basis:` line the script prints (stamp, model, n, p). Never state a savings figure
+  without it, and never re-derive one by hand.
+
+When the script prints `saved : —`, no committed stamp covers this session's model. Say
+that. Do not extrapolate from another model's ratio — that is exactly how a tool ends up
+reporting savings while the invoice goes up.
 
 For the authoritative breakdown (usage + embodied + primary energy) the user can run the Python path, which needs the real package:
 

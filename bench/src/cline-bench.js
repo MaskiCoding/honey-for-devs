@@ -23,6 +23,8 @@ const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 const { grade } = require("./grade");
+const { dollars, newInput } = require("./report");
+const { pairedDelta } = require("./paired");
 const eco = require("../../hooks/eco");
 
 const ROOT = path.join(__dirname, "..");
@@ -194,27 +196,48 @@ const cellKey = (v, t, r) => `${v}__${t}__r${r}`;
   console.log(`\nresults -> ${path.relative(REPO, outFile)}`);
 })().catch((e) => { console.error("\n" + (e.stack || e)); process.exit(1); });
 
-// cache-aware $ — same model as src/report.js: cached input (rule re-read) bills at 10% of
-// fresh. cached = steady state (rule prompt-cached after turn 1); cold = every turn billed fresh.
-// Cline reports input = fresh, cache_read = cached portion, so they bracket the real cost.
+// $ uses the shared cost basis from src/report.js (all four token classes, cache
+// creation included) so harness and single-call numbers are comparable.
 function printSummary(records, variants) {
-  const pricing = JSON.parse(fs.readFileSync(path.join(ROOT, "pricing.json"), "utf8"));
-  const rate = pricing.rates.find((r) => MODEL.toLowerCase().includes(r.match)) || pricing._default;
-  const dollars = (freshIn, cacheIn, out) => (freshIn * rate.in + cacheIn * rate.in * 0.1 + out * rate.out) / 1e6;
   const by = {};
   for (const r of records) (by[r.variant] ??= []).push(r);
   const mean = (a, f) => (a.length ? a.reduce((s, x) => s + f(x), 0) / a.length : 0);
-  console.log("\nvariant   n  pass%  judge  in(avg)  out(avg)  $cached  $cold");
+  console.log("\nvariant   n  pass%  judge  in(avg)  out(avg)  iters  $/task");
   for (const v of variants) {
     const rs = by[v] || [];
     if (!rs.length) continue;
     const pass = Math.round(100 * rs.filter((x) => x.passed).length / rs.length);
     const j = rs.map((x) => x.judge).filter((x) => x != null);
-    const cached = mean(rs, (x) => dollars(x.usage.input, x.usage.cache_read, x.usage.output));
-    const cold = mean(rs, (x) => dollars(x.usage.input + x.usage.cache_read, 0, x.usage.output));
+    const iters = rs.map((x) => x.iterations).filter((x) => x != null);
     console.log(`${v.padEnd(8)} ${String(rs.length).padStart(2)}  ${String(pass).padStart(4)}  ` +
       `${String(j.length ? median(j) : "-").padStart(5)}  ${String(Math.round(mean(rs, (x) => x.usage.input))).padStart(7)}  ` +
       `${String(Math.round(mean(rs, (x) => x.usage.output))).padStart(7)}  ` +
-      `${cached.toFixed(4)}  ${cold.toFixed(4)}`);
+      `${String(iters.length ? median(iters) : "-").padStart(5)}  ` +
+      `${mean(rs, (x) => dollars(MODEL, x.usage)).toFixed(4)}`);
+  }
+
+  // Paired vs the `off` control. TURNS is the endpoint that matters here and nowhere
+  // else: terseness that buys one extra agent turn erases the token saving, and the
+  // single-call bench (src/run.js) structurally cannot see it.
+  if (!by.off) return;
+  const metrics = {
+    "Δ output": (r) => r.usage.output || 0,
+    "Δ new-input": (r) => newInput(r.usage),
+    "Δ cost": (r) => dollars(MODEL, r.usage),
+    "Δ turns": (r) => r.iterations,
+  };
+  console.log("\nPAIRED vs `off` (per-task median, Wilcoxon; ns = inside noise)");
+  console.log("| Variant | n | " + Object.keys(metrics).join(" | p | ") + " | p |");
+  console.log("|---|--:|" + Object.keys(metrics).map(() => "--:|--:|").join(""));
+  for (const v of variants) {
+    if (v === "off" || !by[v]) continue;
+    const cells = Object.values(metrics).map((metric) => {
+      const d = pairedDelta(records, { variant: v, baseline: "off", metric });
+      const val = d.medianRel == null ? "—"
+        : `${d.medianRel >= 0 ? "+" : ""}${(d.medianRel * 100).toFixed(0)}%${d.p != null && d.p >= 0.05 ? " (ns)" : ""}`;
+      return `${val} | ${d.p == null ? "—" : d.p < 0.001 ? "<0.001" : d.p.toFixed(3)}`;
+    });
+    const n = pairedDelta(records, { variant: v, baseline: "off", metric: metrics["Δ output"] }).n;
+    console.log(`| ${v} | ${n} | ${cells.join(" | ")} |`);
   }
 }
