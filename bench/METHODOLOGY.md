@@ -125,12 +125,54 @@ Two things make this measurable rather than a matter of taste:
   from "says less about it" — a lean prompt that keeps the LOC cut while shedding 2800
   tokens of its own weight is a clean win; one that loses the LOC cut is not.
 
-Run it opt-in, and on current models — the committed stamps are a generation behind
-(Opus 4.8 / GPT-5.5 vs Opus 5 / Fable 5 / GPT-5.6):
+Run it opt-in:
 
 ```bash
-RUNS=3 node src/run.js --variants baseline,honey,honey-lean
+RUNS=3 MAX_TOKENS=16000 node src/run.js --variants baseline,honey,honey-lean
 ```
+
+### Result: the hypothesis failed (`full-opus5-lean`, Opus 5, 23 tasks × 3 runs)
+
+207 clean cells, zero refusals, zero truncation, $15.49.
+
+| | Δ output | Δ LOC | Δ cost | Tests | Judge W/L/T |
+|---|---:|---:|---:|---:|---:|
+| honey | −38% (p<0.001) | **−71%** (p<0.001) | −24% (p<0.001) | **100%** | 10/5/5 (p=0.302) |
+| honey-lean | −35% (p<0.001) | −50% (p<0.001) | **−32%** (p<0.001) | 96% | 11/4/5 (p=0.118) |
+
+**`honey-lean` is a cheaper prompt, not a better one — do not promote it.** It matches
+on output tokens and wins 8 points of cost (its prompt is a fifth the weight: new-input
+15,745 vs 23,607), but surrenders **21 points of LOC reduction** — Lever 1, the thing the
+skill exists for — and three test cells.
+
+The specific prediction above failed **in the opposite direction**. `honey-lean` was
+written to recover the web-tier "shorter substitute" regression; instead web tests went
+100% → 90% (both failures `blog-grid`), and `honey` won the web judge outright — 6/0/1,
+**p=0.031**, the only significant judge result in the run. The verbose user-facing
+carve-out is load-bearing; thinning it cost both tests and judged quality.
+
+So the 2026 "less prescriptive" guidance does **not** transfer to this skill at the
+endpoints that matter for it. Where lean does hold up is the code tier (output −50% vs
+−45%, cost −46% vs −34%, LOC −64% vs −72%) and relay (−63% vs −50%). A middle variant —
+lean's structure with the user-facing carve-out restored in full — is the open candidate.
+
+### `full-fable5-lean` is QUARANTINED — do not quote it
+
+Same shape, $15.23, and **unusable**: 24 of 207 cells came back `stop_reason: "refusal"`.
+Fable 5 runs safety classifiers that decline a request with HTTP 200 and near-empty
+content, and they fired on ordinary coding tasks (`slugify`, `csv-column-sum`, `memoize`).
+
+The distribution is what invalidates it — **baseline 19 refusals, honey 0, honey-lean 5**.
+All 24 scored as test failures, and refused cells emit a median 105 output tokens against
+484 for clean ones. The control arm was disproportionately silenced, which manufactures a
+large fake win for `honey`: it is where `baseline 71% tests` and the absurd
+`relay Δoutput +6013%` come from.
+
+**Known harness gap:** `client.js` records `stop_reason` (which is the only reason this
+was visible at all) but still treats a refusal as a normal empty response. Before Fable 5
+can enter a sweep, refused cells must be excluded rather than scored — record them as
+`passed: null` so `paired.js` drops the task from both arms, and report the exclusion
+count — and the run should opt into `fallbacks` (see the `claude-api` refusal guidance).
 
 **Not universal.** Kimi K3's own guidance runs the other way — context-heavy, with
 "explicit constraints, edge cases, and verification steps" made visible in the prompt.
