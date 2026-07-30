@@ -95,6 +95,47 @@ Every result set snapshots each variant's resolved system prompt plus its hash
 (`results/<stamp>/systems/`, `meta.variant_hashes`), so "the skill didn't help" can always
 be distinguished from "the skill never loaded".
 
+## Lean-prompt ablation
+
+Both major labs changed their prompting guidance in 2026, in the same direction, and
+it lands squarely on a skill like this one:
+
+- **OpenAI (GPT-5.6):** leaner system prompts measured **+10–15% eval score with 41–66%
+  fewer total tokens** and 33–67% lower cost. Reserve `ALWAYS`/`NEVER`/`must` for true
+  invariants. Simplify by ablation — *"remove one group of instructions, examples, or
+  tools at a time, then rerun the same evals."*
+- **Anthropic (Claude Fable 5):** prompts written for prior models *"are often too
+  prescriptive and reduce output quality"*; A/B with the older scaffolding removed.
+
+`variants/honey-lean.md` is that ablation: the irreducible core (the ladder, the
+never-cut invariants, the user-facing carve-out, Lever 3) at **781 tokens** against the
+shipped skill's 3607, with absolute-language instances cut from 42 to 6. It is a
+**candidate replacement** for the core skill, not a satellite — if it wins, `honey`
+becomes lean rather than gaining a sibling.
+
+Two things make this measurable rather than a matter of taste:
+
+- **A specific predicted failure.** OpenAI warns that on GPT-5.6 a generic "be concise"
+  instruction can make the model *"produce a shorter substitute instead of the full
+  requested artifact."* We already see that shape in our own data: on `full-gpt55`, the
+  web tier is the one place honey regresses tests (**95% vs baseline 100%**). `honey-lean`
+  reframes Lever 2 as *selection, not compression* and states artifact completeness as a
+  requirement. If that's the mechanism, its web-tier pass-rate recovers.
+- **The endpoints are already paired.** Δ LOC and Δ output separate "writes less code"
+  from "says less about it" — a lean prompt that keeps the LOC cut while shedding 2800
+  tokens of its own weight is a clean win; one that loses the LOC cut is not.
+
+Run it opt-in, and on current models — the committed stamps are a generation behind
+(Opus 4.8 / GPT-5.5 vs Opus 5 / Fable 5 / GPT-5.6):
+
+```bash
+RUNS=3 node src/run.js --variants baseline,honey,honey-lean
+```
+
+**Not universal.** Kimi K3's own guidance runs the other way — context-heavy, with
+"explicit constraints, edge cases, and verification steps" made visible in the prompt.
+Don't generalize a lean-prompt win on one model family to all of them; sweep per model.
+
 ## Competitor pins
 
 `variants/caveman.md` and `variants/ponytail.md` are frozen copies of the upstream

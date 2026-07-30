@@ -31,6 +31,7 @@
   "_aliases_note": "For ids newer than the registry. Each points at the closest registry model whose EcoLogits params we borrow.",
   "default_alias": "gpt-4o",
   "aliases": [
+    { "match": ["fable", "mythos"], "registry": "claude-opus-4-1" },
     { "match": ["opus"],            "registry": "claude-opus-4-1" },
     { "match": ["sonnet"],          "registry": "claude-sonnet-4-0" },
     { "match": ["haiku"],           "registry": "claude-3-5-haiku-latest" },

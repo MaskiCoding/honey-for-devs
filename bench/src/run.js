@@ -38,10 +38,17 @@ const JUDGE_MODELS = (process.env.JUDGE_MODELS || process.env.JUDGE_MODEL || MOD
 const RUNS = Number(process.env.RUNS || 1);
 const THINKING = Number(process.env.THINKING || 0);
 const CONCURRENCY = Number(process.env.CONCURRENCY || 4);
-const ALL_VARIANTS = ["baseline", "caveman", "ponytail", "honey", "honey-design"];
-// honey-design is an opt-in user-facing variant; exclude it from the default sweep
-// (it only makes sense on web tasks) — request it explicitly with --variants.
-const DEFAULT_VARIANTS = ALL_VARIANTS.filter((v) => v !== "honey-design");
+const ALL_VARIANTS = ["baseline", "caveman", "ponytail", "honey", "honey-design", "honey-lean"];
+// Both are opt-in, excluded from the default sweep — request with --variants.
+//   honey-design: user-facing satellite, only meaningful on web tasks.
+//   honey-lean:   candidate replacement for the core skill, not a satellite — 781 tokens
+//     vs honey's 3607. Tests the 2026 vendor guidance that prompts written for prior
+//     models are too prescriptive for current ones (OpenAI measured leaner system
+//     prompts at +10–15% eval with 41–66% fewer tokens; Anthropic says prior-model
+//     prompts "reduce output quality" on Fable 5). If it wins, honey becomes lean —
+//     this does not ship as a second skill. See ../METHODOLOGY.md § Lean-prompt ablation.
+const OPT_IN = new Set(["honey-design", "honey-lean"]);
+const DEFAULT_VARIANTS = ALL_VARIANTS.filter((v) => !OPT_IN.has(v));
 const VARIANTS = (flag("variants") || DEFAULT_VARIANTS.join(",")).split(",").map((s) => s.trim());
 const TASK_FILTER = flag("tasks") ? new Set(flag("tasks").split(",").map((s) => s.trim())) : null;
 
@@ -166,7 +173,10 @@ async function runCell(task, variantName, system, run) {
     model: MODEL,
     system,
     user: task.prompt,
-    maxTokens: type === "web" ? 8192 : 4096, // full pages need headroom
+    // Web pages need headroom. MAX_TOKENS overrides: models where thinking is on by
+    // default (Opus 5, Fable 5) spend part of this budget thinking, so the same number
+    // buys less answer than on Opus 4.8 — raise it when comparing across those.
+    maxTokens: Number(process.env.MAX_TOKENS || 0) || (type === "web" ? 8192 : 4096),
     thinking: THINKING,
   });
 
@@ -176,6 +186,7 @@ async function runCell(task, variantName, system, run) {
     category: task.meta.category,
     type,
     run,
+    stop_reason: gen.stop_reason ?? null, // "max_tokens" = truncated; not a real token saving
     usage: gen.usage,
     gco2: eco.estimate(MODEL, gen.usage.output, cfg).gco2,
     reply: gen.text,
