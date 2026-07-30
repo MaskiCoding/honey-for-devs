@@ -326,6 +326,28 @@ node src/report.js --stamp full-opus48 --by-type  # per tier
 | honey | **−20%** (p=0.004) | **−18%** (p<0.001) | +573% | +14% (ns, p=0.820) | 6/8/7 | 0.791 | 99% |
 | honey-design | −12% (p<0.001) | **−33%** (p<0.001) | +728% | +17% (ns) | 8/6/7 | 0.791 | 97% |
 
+### Opus 5 (`full-opus5-lean`) — current-generation, incl. the lean ablation
+
+23 tasks × 3 runs, single haiku judge, `MAX_TOKENS=16000`. 207 cells, zero refusals,
+zero truncation. The judge here is one model rather than the cross-family panel — a
+deliberate cost tradeoff, re-scorable offline with `src/rejudge.js`; the objective
+columns (tests, Δ LOC, Δ output) don't involve it.
+
+| Variant | Δ output | Δ LOC | Δ cost | Judge W/L/T | sign p | Tests |
+|---------|---------:|------:|-------:|------------:|-------:|------:|
+| honey | **−38%** (p<0.001) | **−71%** (p<0.001) | −24% (p<0.001) | 10/5/5 | 0.302 | **100%** |
+| honey-lean | −35% (p<0.001) | −50% (p<0.001) | **−32%** (p<0.001) | 11/4/5 | 0.118 | 96% |
+
+**Honey's cut is bigger on the newer model, not smaller** — −71% LOC on Opus 5 against
+−39% on Opus 4.8 — and it is the only arm with no failing cell (baseline itself fails
+four). That is worth stating because the 2026 prompting guidance predicted the opposite;
+see [`METHODOLOGY.md`](METHODOLOGY.md#lean-prompt-ablation).
+
+`honey-lean` is the tested-and-rejected 781-token ablation
+([`variants/honey-lean.md`](variants/honey-lean.md)): it buys 8 points of cost with 21
+points of LOC and three test cells — **a cheaper prompt, not a better one.** It is opt-in
+and kept only so the negative result stays reproducible.
+
 ### `honey` by tier
 
 Δ output · judge W/L/T with its sign-test `p`:

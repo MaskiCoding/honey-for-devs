@@ -4,8 +4,10 @@ results/*
 # an API key. raw/ replies stay out (1.8MB/stamp); `loc` is baked into results.json.
 !results/full-opus48/
 !results/full-gpt55/
+!results/full-opus5-lean/
 results/full-opus48/raw/
 results/full-gpt55/raw/
+results/full-opus5-lean/raw/
 
 node_modules/
 __pycache__/

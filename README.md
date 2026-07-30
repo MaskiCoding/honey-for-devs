@@ -58,9 +58,23 @@ to be longest, and it is how token-saving tools end up publishing numbers nobody
 reproduce. Endpoints and the run ladder are pre-registered in
 [`bench/METHODOLOGY.md`](bench/METHODOLOGY.md).
 
+On **Claude Opus 5** (23 tasks × 3 runs, 207 cells, zero refusals or truncation —
+[`full-opus5-lean`](bench/results/full-opus5-lean/)):
+
+| | Δ LOC | Δ output | Δ cost | Tests |
+|---|------:|---------:|-------:|------:|
+| **Honey** | **−71%** (p<0.001) | **−38%** (p<0.001) | **−24%** (p<0.001) | **100%** |
+
+Honey is the only arm with no failing cell — the no-skill baseline fails four. And the
+cut is **larger on the newer model, not smaller**: −71% LOC on Opus 5 against −39% on
+Opus 4.8. That runs against the 2026 prompting guidance that newer models need less
+instruction, which we tested directly and rejected — see
+[`METHODOLOGY.md`](bench/METHODOLOGY.md#lean-prompt-ablation).
+
 A single blended number hides the story, because the levers fire differently per
-task type. Honey on Opus 4.8 — **Δ LOC** measures Lever 1 directly, **Δ output**
-measures the tokens (code *and* the prose around it):
+task type. Honey on Opus 4.8, where the full competitor set was run — **Δ LOC**
+measures Lever 1 directly, **Δ output** measures the tokens (code *and* the prose
+around it):
 
 | Task tier | tasks | Δ LOC | Δ output |
 |-----------|------:|------:|---------:|
