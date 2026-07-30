@@ -10,8 +10,20 @@
     "default": 450
   },
 
-  "_savings_note": "Output-token reduction vs a no-Honey baseline (CO2 scales with output tokens). 'full' = 0.37 from the reproducible bench/ (Opus 4.8, 12 code tasks x3 panel run; see bench/results/combined.md). This is the code-tier figure — the badge's home turf; savings are smaller on user-facing tasks (the visual carve-out preserves polish) and larger on agent-to-agent handoffs (~0.54). $ savings run lower than CO2 (~0.21 on code) since input isn't cut. lite/ultra are extrapolations, not measured.",
-  "savings_vs_baseline": { "lite": 0.22, "full": 0.37, "ultra": 0.48 },
+  "_savings_note": "Output-token reduction vs a no-Honey baseline (CO2 scales with output tokens). This is a MODELLED counterfactual carried over from the benchmark — it is NOT measured for the session being reported, and every consumer must say so. 'full' is the paired per-task median from the committed stamp in savings_provenance (all task tiers, not the flattering code-only slice); lite/ultra keep their historical ratio to 'full' and remain extrapolations, never measured. Per tier on the same stamp: code -39% (p=0.007), user-facing -7% (ns, p=0.673), agent-to-agent -49% (n=2). $ savings run lower than CO2 since input isn't cut — and can go negative on a cold session.",
+  "savings_vs_baseline": { "lite": 0.17, "full": 0.29, "ultra": 0.38 },
+
+  "_savings_provenance_note": "Which measurement the ratio above came from. by_model gates the claim: a session whose model matches no key here gets NO savings line rather than an extrapolated one. Regenerate after a live bench with: node bench/src/report.js --stamp <stamp>",
+  "savings_provenance": {
+    "measured_mode": "full",
+    "method": "paired per-task median delta in output tokens vs baseline; runs collapsed by median; two-sided Wilcoxon signed-rank",
+    "stamp": "bench/results/full-opus48",
+    "n": 23,
+    "by_model": {
+      "opus": { "ratio": 0.286, "p": 0.020, "stamp": "bench/results/full-opus48", "model": "claude-opus-4-8" },
+      "gpt-5": { "ratio": 0.196, "p": 0.004, "stamp": "bench/results/full-gpt55", "model": "gpt-5.5" }
+    }
+  },
 
   "_serving_note": "EcoLogits' coefficient is a SINGLE-STREAM (batch-size-1) upper bound: it assigns one request the whole GPU set for the full generation latency (e.g. Opus ~1.9 tok/s, ~523s for 1000 tokens — ~30x slower than reality). Production serves many requests concurrently via continuous batching, which produces ~B tokens per forward pass at ~one-pass power, so per-request usage AND embodied impact (both latency-scaled) amortize by ~B. The badge and reports divide the faithful EcoLogits ceiling by this factor to show realistic SERVED impact; eco_report.py also prints the ceiling. 32 is calibrated so modeled throughput matches observed interactive serving (Opus 1.9 tok/s x 32 = ~61 tok/s, in the real ~50-70 tok/s range) and sits mid-range of published vLLM/TensorRT-LLM continuous-batching concurrency (16-64). Conservative by design — a carbon tool should not understate.",
   "serving_concurrency": 32,

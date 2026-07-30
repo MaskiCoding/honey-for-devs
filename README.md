@@ -51,36 +51,58 @@ is scored by a **4-model cross-family judge panel** (median of Opus 4.8 + Sonnet
 terse skill gets no thumb on the scale. The figures below are the committed results
 (Claude Opus 4.8, 3 runs each) — run `cd bench && npm run bench` to reproduce.
 
+Every number is a **paired per-task delta** vs baseline — runs collapse by median,
+tasks pair up, and the figure is the median of those paired deltas with a two-sided
+Wilcoxon `p`. Not a ratio of arm totals: that is dominated by whichever task happens
+to be longest, and it is how token-saving tools end up publishing numbers nobody can
+reproduce. Endpoints and the run ladder are pre-registered in
+[`bench/METHODOLOGY.md`](bench/METHODOLOGY.md).
+
 A single blended number hides the story, because the levers fire differently per
-task type. Quality is **% of baseline** (panel median; for handoffs, lossless
-recovery); tokens are **generated output vs baseline**:
+task type. Honey's **output** cut, Opus 4.8:
 
-| Task tier | Caveman | Ponytail | **Honey** |
-|-----------|:-------:|:--------:|:---------:|
-| **Code** (14 unit-tested tasks) | 101% · −37% | 99% · **+24%** | **98% · −49%** |
-| **User-facing** (7 landing/UI tasks) | 99% · −18% | 95% · −33% | **101% · −6%** |
-| **Agent-to-agent** (2 handoff tasks, lossless recovery) | 67% · −23% | 50% · −22% | **100% · −51%** |
+| Task tier | tasks | Δ output | |
+|-----------|------:|---------:|---|
+| **Code** | 14 | **−39%** | p=0.007 |
+| **User-facing** | 7 | −7% | p=0.673 — a tie |
+| **Agent-to-agent** | 2 | −49% | n=2, no p claimed |
+| whole suite | 23 | **−29%** | p=0.020 |
 
-Honey **leads quality where it matters most** — it tops the user-facing and
-agent-to-agent tiers (the quality-separating ones) and stays within judge noise
-of the pack on saturated code tasks — while cutting tokens where it's safe to:
+Against the competitors on the whole suite (Δ output · judge win/loss/tie by exact
+sign test · unit-test pass-rate):
 
-- **Code** — the deepest cut (−49% output) at essentially tied quality (98% vs
-  100%, within judge noise on tasks every variant passes). Caveman saves less;
-  Ponytail's mandatory self-check *inflates* trivial code (+24%).
-- **User-facing** — the carve-out keeps Honey from compressing polish, yet it
-  still trims output (−6%) while earning the top quality score (101% of baseline)
-  and the only 100% accessibility pass; Ponytail strips hardest and drops to 81%
-  on the structural/a11y checklist.
+| Variant | Δ output | Judge W/L/T | Tests |
+|---------|---------:|------------:|------:|
+| Caveman | −22% (p<0.001) | 3/16/2, **p=0.004** | 94% |
+| Ponytail | −7% (ns, p=0.267) | 1/19/1, **p<0.001** | 90% |
+| **Honey** | **−29%** (p=0.020) | 8/11/2, p=0.648 | **100%** |
+
+- **Code** — the deepest cut (−39%) at 100% unit-test pass. Ponytail's mandatory
+  self-check *inflates* trivial code (+60% on Opus, +92% on GPT-5.5).
+- **User-facing** — the carve-out keeps Honey from compressing polish: the output
+  delta here is a **statistical tie**, and Honey holds the only 100% accessibility
+  pass while Ponytail drops to 81% on the structural/a11y checklist.
 - **Agent-to-agent** — under adversarial relay queries (ordinal, nested, absence,
   cross-field count) Honey is the **only variant that stays 100% lossless** while
-  roughly halving handoff size (−51%); Caveman and Ponytail compress harder *and*
-  lose recovery (67% / 50%). Its biggest, cleanest win.
+  roughly halving handoff size; Caveman and Ponytail compress harder *and* lose
+  recovery (67% / 50%). Its biggest, cleanest win — on 2 tasks, so no p-value.
+- **Quality is a tie overall** (p=0.648) — fewer tokens at no measurable quality
+  cost, not higher quality. But the whole-suite tie is two opposing effects
+  cancelling: on Opus, Honey **wins user-facing 6/0/1 (p=0.031)** and **loses the
+  code judge 2/11/1 (p=0.022)** — on tasks where every variant passes 100% of the
+  unit tests, so that is a stylistic penalty for terseness, not a correctness one.
+  Neither effect replicates on GPT-5.5 (p=0.375 / p=1.000), so treat the code-judge
+  dip as suggestive, not established. Caveman's judge *mean* also ties baseline
+  exactly — but paired, it loses 16 of 23 tasks (p=0.004). Means hide that; sign
+  tests don't.
+- **The dollar saving is unproven at this sample size.** −21% on Opus is p=0.104 —
+  not significant on 23 tasks. Output volume is down; the bill is not yet a claim.
 
-The same pattern holds on GPT-5.5 (full two-provider table in
-[`bench/results/cross-provider.md`](bench/results/cross-provider.md)): Honey is the
-only variant with **no test regressions across all three tiers on Opus**, and on
-both models it keeps top-tier quality while cutting tokens on every tier.
+The output cut holds on GPT-5.5 (−20%, p=0.004; full two-provider table in
+[`bench/README.md`](bench/README.md#results)), but there **cost comes out +14% (ns)**
+because no prompt caching engaged in that arm, so every task paid the skill prompt
+fresh. Honey is the only variant with no test regressions across all three tiers on
+Opus.
 
 ### End-to-end agentic measurement (Cline harness)
 
@@ -261,9 +283,17 @@ tasks. See [`bench/results/honey-design.md`](bench/results/honey-design.md).
 > **Honesty note.** Earlier versions of this README quoted `92% / 78% / 73%` quality
 > and `−57% / −65% / −70%` tokens from an unpublished run. Those don't reproduce —
 > the real quality spread is far narrower and the token savings are tier-dependent
-> (and Ponytail *adds* tokens on simple code). The table above is what the committed
-> [`bench/`](bench/) harness actually produces; see
-> [`bench/results/combined.md`](bench/results/combined.md) for the full breakdown.
+> (and Ponytail *adds* tokens on simple code).
+>
+> A second correction, 2026-07-29: the figures before that were **ratios of arm
+> totals** (`sum(honey)/sum(baseline)`), which one long task can dominate. Everything
+> above is now a paired per-task median with a p-value. That moved honey's headline
+> from −15% to **−29%** — the old method was understating it — but it also retired
+> two numbers that turned out to be outlier artifacts: Ponytail's "−22% output" is
+> really −7% (ns), and Caveman's "tied quality" is a 16-of-23-task loss (p=0.004).
+> Method and pre-registered endpoints: [`bench/METHODOLOGY.md`](bench/METHODOLOGY.md).
+> Regenerate any figure offline with
+> `node bench/src/report.js --stamp full-opus48 --by-type`.
 
 ## Install
 

@@ -18,7 +18,19 @@ node scripts/eco-session.js              # newest session
 node scripts/eco-session.js --transcript PATH --mode full
 ```
 
-Then report terse — output tokens, CO₂eq (g), and `saved (~R% vs no-Honey)` — in a line or two. Keep the exact numbers the script prints; don't round away precision.
+Then report terse — output tokens, CO₂eq (g), and the `saved` line — in a line or two. Keep the exact numbers the script prints; don't round away precision.
+
+## Two numbers, two epistemic statuses — never merge them
+
+- **CO₂eq is measured** for this session: real output tokens through the EcoLogits port.
+- **`saved` is not.** It is a *modelled counterfactual* — how many tokens a no-Honey run
+  would have emitted — taken from a committed bench stamp. Always pass through the
+  `basis:` line the script prints (stamp, model, n, p). Never state a savings figure
+  without it, and never re-derive one by hand.
+
+When the script prints `saved : —`, no committed stamp covers this session's model. Say
+that. Do not extrapolate from another model's ratio — that is exactly how a tool ends up
+reporting savings while the invoice goes up.
 
 For the authoritative breakdown (usage + embodied + primary energy) the user can run the Python path, which needs the real package:
 

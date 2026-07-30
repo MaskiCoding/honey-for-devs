@@ -60,21 +60,31 @@ for (const line of fs.readFileSync(tx, "utf8").split("\n")) {
   perModel[m.model] = (perModel[m.model] || 0) + (m.usage.output_tokens || 0);
 }
 
-let gco2 = 0, ceiling = 0, tokens = 0, concurrency = 1;
+let gco2 = 0, ceiling = 0, tokens = 0, concurrency = 1, topModel = null, topTokens = 0;
 console.log(`transcript : ${tx}`);
 console.log(`mode       : ${mode}`);
 for (const [model, out] of Object.entries(perModel)) {
   if (!out) continue;
   const e = eco.estimate(model, out, cfg);
   gco2 += e.gco2; ceiling += e.gco2Ceiling; tokens += out; concurrency = e.concurrency;
+  if (out > topTokens) { topTokens = out; topModel = model; }
   console.log(`  ${model.padEnd(28)} ${String(out).padStart(8)} tok  -> ${e.gco2.toFixed(2)} g`);
 }
 if (!tokens) { console.error("no output tokens in transcript"); process.exit(1); }
 
-const R = (cfg.savings_vs_baseline && cfg.savings_vs_baseline[mode]) || 0;
-const k = eco.savingsFactor(cfg, mode);
 console.log(`output tok : ${tokens.toLocaleString()}`);
 console.log(`CO2eq      : ${gco2.toFixed(2)} g  (served, usage + embodied, JS port)`);
-console.log(`saved (~${Math.round(R * 100)}% vs no-Honey): ${(gco2 * k).toFixed(2)} g CO2eq`);
+
+// The CO2-per-token figure above is computed from this session. The savings figure is
+// NOT — it is a modelled counterfactual from a committed bench stamp, so it is labelled
+// as one, and omitted entirely when no stamp covers this session's model.
+const sv = eco.savingsInfo(cfg, mode, topModel);
+if (sv) {
+  console.log(`saved      : ~${(gco2 * sv.k).toFixed(2)} g CO2eq  (assumes ${Math.round(sv.R * 100)}% fewer output tokens than a no-Honey run)`);
+  console.log(`  basis    : ${sv.label}`);
+} else {
+  console.log(`saved      : —  (no committed bench stamp covers ${topModel || "this model"}; run bench/ on it rather than extrapolating)`);
+}
+
 console.log(`ceiling    : ${ceiling.toFixed(2)} g  (EcoLogits single-stream, /${concurrency} batching -> served)`);
 console.log(`\nParams are speculative; served = single-stream ceiling / ${concurrency} (continuous batching). Treat as a range, not a meter reading.`);

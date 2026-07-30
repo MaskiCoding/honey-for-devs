@@ -11,14 +11,32 @@ Report the **committed** benchmark results — never a guessed or per-session nu
 
 ## Do
 
-1. Read the committed scoreboard at use time — don't recite from memory:
-   - Per-tier table → [`bench/results/combined.md`](../../bench/results/combined.md) (code / user-facing / agent-to-agent split — the split *is* the finding).
-   - The hive's own handoff numbers → [`bench/hive/RESULTS.md`](../../bench/hive/RESULTS.md).
-2. Report the tier table terse: quality (judge vs baseline %, or lossless recovery for handoffs) and output tokens vs baseline, per variant. Honey leads quality in every tier while cutting tokens where it's safe — deepest on code and handoffs, *spending* more on user-facing polish (the carve-out).
+1. Recompute from the committed records at use time — don't recite from memory, and
+   prefer the raw records over any rendered table (renderings go stale, the records don't):
+
+   ```bash
+   cd bench && node src/report.js --stamp full-opus48 --by-type
+   ```
+
+   Offline, no API spend. Swap `--stamp full-gpt55` for the cross-provider figure, drop
+   `--by-type` for the whole suite. Hive handoff numbers → [`bench/hive/RESULTS.md`](../../bench/hive/RESULTS.md).
+2. Report the tier table terse: **Δ output with its `p`**, judge as win/loss/tie, and the
+   test pass-rate, per variant. The tier split *is* the finding — deepest on code and
+   handoffs, a statistical tie on user-facing (the polish carve-out).
 
 ## Rules
 
-- Quote only what `bench/results/` currently holds. If `combined.md` and the README disagree, trust `bench/results/` (the harness output) and say they're out of sync.
-- Asked for numbers on **this** repo? The bench measures the skill on a fixed task suite, not the user's codebase — offer to run `cd bench && npm run bench`, don't extrapolate.
-- One honest caveat, once: small suite, judge noise — the objective test-pass column is the trustworthy correctness signal.
-- Never resurrect the old unreproducible `92%/78%/73%` / `−57%/−65%/−70%` numbers (see the README honesty note).
+- **Never quote a delta without its p-value**, and call `(ns)` results ties, not wins.
+  Every figure is a paired per-task median; a ratio of arm totals is not quotable.
+- Prose renderings ([`bench/README.md`](../../bench/README.md#results), `results/combined.md`)
+  are secondary. If one disagrees with a fresh `--stamp` recompute, the recompute wins —
+  say the rendering is out of sync.
+- Quality is a **tie**, not a gain — that's the honest claim. Don't upgrade it.
+- Cost/CO₂ savings are a *modelled counterfactual*, not measured; those belong to
+  `honey-eco`, which labels them. Don't state a dollar saving here.
+- Asked for numbers on **this** repo? The bench measures the skill on a fixed task suite,
+  not the user's codebase — offer `cd bench && npm run bench`, don't extrapolate.
+- One honest caveat, once: 23 author-written tasks, judge noise — the objective test-pass
+  column is the trustworthy correctness signal.
+- Never resurrect the old unreproducible `92%/78%/73%` / `−57%/−65%/−70%` numbers, or the
+  superseded arm-total figures (`−49%` code, `−15%` aggregate) — see [`bench/METHODOLOGY.md`](../../bench/METHODOLOGY.md).
