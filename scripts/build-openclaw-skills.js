@@ -21,6 +21,7 @@ const DESCRIPTIONS = {
   'honey-review': 'Review a diff for over-engineering and verbosity. Terse delete-list of what to cut and the lines each saves. One-shot.',
   'honey-design': 'Same pixels, fewer tokens. For user-facing markup: keeps the full design, expresses it densely with CSS vars, shorthand, fluid units.',
   'honey-gain': "Show Honey's benchmark scoreboard: committed quality and token results per task tier vs Caveman, Ponytail, and no-skill. One-shot.",
+  'honey-debt': 'Harvest every `honey:` shortcut marker into a debt ledger, flagging the ones with no revisit trigger. One-shot report, changes nothing.',
   'honey-eco': "Report the session's Honey savings: output tokens, CO2, and CO2/$ saved vs a no-Honey baseline, via the committed EcoLogits port.",
   'honey-ccr': 'Compress-Cache-Retrieve huge repetitive array tool output before it hits context: keep a sample, cache the rest, leave a hash.',
   'honey-px': 'Read huge dense read-only text as PNG pages via pxpipe export: ~60-75% fewer input tokens. Lossy on exact strings; never for files you will edit.',

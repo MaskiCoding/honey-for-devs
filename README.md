@@ -59,23 +59,23 @@ reproduce. Endpoints and the run ladder are pre-registered in
 [`bench/METHODOLOGY.md`](bench/METHODOLOGY.md).
 
 A single blended number hides the story, because the levers fire differently per
-task type. Honey's **output** cut, Opus 4.8:
+task type. Honey on Opus 4.8 — **Δ LOC** measures Lever 1 directly, **Δ output**
+measures the tokens (code *and* the prose around it):
 
-| Task tier | tasks | Δ output | |
-|-----------|------:|---------:|---|
-| **Code** | 14 | **−39%** | p=0.007 |
-| **User-facing** | 7 | −7% | p=0.673 — a tie |
-| **Agent-to-agent** | 2 | −49% | n=2, no p claimed |
-| whole suite | 23 | **−29%** | p=0.020 |
+| Task tier | tasks | Δ LOC | Δ output |
+|-----------|------:|------:|---------:|
+| **Code** | 14 | **−53%** (p=0.002) | **−39%** (p=0.007) |
+| **User-facing** | 7 | −23% (p=0.022) | −7% (p=0.673 — a tie) |
+| **Agent-to-agent** | 2 | — (no code) | −49% (n=2, no p) |
+| whole suite | 23 | **−43%** (p<0.001) | **−29%** (p=0.020) |
 
-Against the competitors on the whole suite (Δ output · judge win/loss/tie by exact
-sign test · unit-test pass-rate):
+Against the competitors on the whole suite (judge win/loss/tie by exact sign test):
 
-| Variant | Δ output | Judge W/L/T | Tests |
-|---------|---------:|------------:|------:|
-| Caveman | −22% (p<0.001) | 3/16/2, **p=0.004** | 94% |
-| Ponytail | −7% (ns, p=0.267) | 1/19/1, **p<0.001** | 90% |
-| **Honey** | **−29%** (p=0.020) | 8/11/2, p=0.648 | **100%** |
+| Variant | Δ LOC | Δ output | Judge W/L/T | Tests |
+|---------|------:|---------:|------------:|------:|
+| Caveman | −28% (p<0.001) | −22% (p<0.001) | 3/16/2, **p=0.004** | 94% |
+| Ponytail | −33% (p=0.028) | −7% (ns, p=0.267) | 1/19/1, **p<0.001** | 90% |
+| **Honey** | **−43%** (p<0.001) | **−29%** (p=0.020) | 8/11/2, p=0.648 | **100%** |
 
 - **Code** — the deepest cut (−39%) at 100% unit-test pass. Ponytail's mandatory
   self-check *inflates* trivial code (+60% on Opus, +92% on GPT-5.5).
@@ -257,6 +257,7 @@ reach for at a specific moment.
 | `honey-review` | satellite skill | review a diff for over-engineering + over-verbosity; terse delete-list |
 | `honey-eco` | satellite skill | this session's CO₂ / $ / tokens saved, from the committed EcoLogits port |
 | `honey-gain` | satellite skill | the committed benchmark scoreboard (reads `bench/results/` at runtime) |
+| `honey-debt` | satellite skill | harvest every `honey:` shortcut marker into a debt ledger, flagging the ones with no revisit trigger — so a deliberate simplification can't quietly go permanent |
 | `honey-compress` | satellite skill | rewrite a re-read memory file (CLAUDE.md, AGENTS.md) tersely to cut *input* tokens; backs up the original |
 | `honey-memory` | satellite skill | create + maintain one committed per-project `PROJECT.md` so agents stop re-discovering the same facts every cold session; stores only stable, not-in-the-code context, kept honest by living in git |
 | `honey-ccr` | satellite skill | crush huge redundant array tool output (logs, scan results) to a sampled view; lossy-but-recoverable via `eson crush`/`retrieve` |

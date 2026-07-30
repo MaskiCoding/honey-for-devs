@@ -91,6 +91,7 @@ function aggregate(records, order, model) {
 
 const METRICS = (model) => ({
   output: (r) => r.usage.output || 0,
+  loc: (r) => (r.loc == null ? null : r.loc), // Lever 1 direct; null on relay tasks (no code)
   newInput: (r) => newInput(r.usage),
   cost: (r) => dollars(model, r.usage),
   judge: (r) => (r.judge == null ? null : r.judge),
@@ -107,6 +108,7 @@ function paired(records, order, model, baseline = "baseline") {
     if (v === baseline) continue;
     out[v] = {
       output: pairedDelta(records, { variant: v, baseline, metric: m.output }),
+      loc: pairedDelta(records, { variant: v, baseline, metric: m.loc }),
       newInput: pairedDelta(records, { variant: v, baseline, metric: m.newInput }),
       cost: pairedDelta(records, { variant: v, baseline, metric: m.cost }),
       judge: pairedDelta(records, { variant: v, baseline, metric: m.judge }),
@@ -118,8 +120,8 @@ function paired(records, order, model, baseline = "baseline") {
 function pairedTable(records, order, model, baseline = "baseline") {
   const d = paired(records, order, model, baseline);
   const header =
-    "| Variant | n | Δ output | p | Δ new-input | p | Δ cost | p | Judge W/L/T | sign p |\n" +
-    "|---------|--:|---------:|--:|------------:|--:|-------:|--:|------------:|-------:|";
+    "| Variant | n | Δ output | p | Δ LOC | p | Δ new-input | p | Δ cost | p | Judge W/L/T | sign p |\n" +
+    "|---------|--:|---------:|--:|------:|--:|------------:|--:|-------:|--:|------------:|-------:|";
   const lines = order
     .filter((v) => d[v] && d[v].output.n)
     .map((v) => {
@@ -127,7 +129,7 @@ function pairedTable(records, order, model, baseline = "baseline") {
       const j = x.judge;
       // "wins" = variant scored HIGHER than baseline on that task
       const wlt = `${j.higher}/${j.lower}/${j.ties}`;
-      return `| ${v} | ${x.output.n} | ${delta(x.output)} | ${p(x.output.p)} | ${delta(x.newInput)} | ${p(x.newInput.p)} | ${delta(x.cost)} | ${p(x.cost.p)} | ${wlt} | ${p(j.pSign)} |`;
+      return `| ${v} | ${x.output.n} | ${delta(x.output)} | ${p(x.output.p)} | ${delta(x.loc)} | ${p(x.loc.p)} | ${delta(x.newInput)} | ${p(x.newInput.p)} | ${delta(x.cost)} | ${p(x.cost.p)} | ${wlt} | ${p(j.pSign)} |`;
     });
   return [header, ...lines].join("\n");
 }

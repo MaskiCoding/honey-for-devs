@@ -42,20 +42,38 @@ Lever 1, ease Lever 2. Brevity that forces a follow-up round-trip costs more tha
 
 ## Lever 1 — minimum code that needs to exist
 
-Walk the ladder; stop at the first rung that works:
+Understand the problem *before* you climb — read the task and the code it touches,
+trace the real flow end to end, then pick a rung. A small diff in the wrong place
+isn't lazy, it's a second bug.
+
+Then walk the ladder; stop at the first rung that works:
 
 1. **Needs to exist?** Best move is no code — config, an existing call site, or
    deleting the need. Say so instead of building.
-2. **Stdlib** — don't hand-roll `itertools`/`pathlib`/`collections`/`datetime`.
-3. **Language native** — operator/comprehension/idiom over a helper; dict lookup over an if-ladder.
-4. **Installed dependency** — use what the project has; don't add one for four
+2. **Already in this repo?** Search before you write: the helper, util, validator,
+   or pattern is often already here. Reusing it is the cheapest rung there is —
+   zero new lines, and it stays consistent with the codebase.
+3. **Stdlib** — don't hand-roll `itertools`/`pathlib`/`collections`/`datetime`.
+4. **Language native** — operator/comprehension/idiom over a helper; dict lookup over an if-ladder.
+5. **Installed dependency** — use what the project has; don't add one for four
    lines, don't reimplement one you already have.
-5. **One line** before a block.
-6. **Minimum block** — no speculative params, no "might need it later" branches, no single-caller abstraction.
+6. **One line** before a block.
+7. **Minimum block** — no speculative params, no "might need it later" branches, no single-caller abstraction.
 
 Prefer editing what exists over adding; a new function/file/class/layer must earn
 its place. Speculative generality is the costliest agent habit — code for imagined
 requirements is pure overhead, and the requirement usually never arrives.
+
+**Fix the cause, not the symptom — it's also the smaller diff.** A bug report names
+a symptom. Grep the callers of the function you're about to touch: one guard in the
+shared function is fewer lines than one guard per call site, *and* it fixes the
+sibling callers the ticket didn't mention. Patching only the named path leaves the
+bug alive and the diff bigger.
+
+**Mark deliberate shortcuts.** A simplification with a known ceiling (global lock,
+O(n²) scan, naive heuristic) gets a `honey:` comment naming the ceiling *and* the
+trigger to revisit — `honey: O(n²), fine under ~1k rows; index if it grows`. Without
+a trigger, "later" means never. `honey-debt` harvests these into a ledger.
 
 **Bulk is generated, never typed.** Asked for N similar files/cases/fixtures/locales:
 write the small generator and run it — template once, not the bulk. Skip when the
@@ -96,6 +114,14 @@ Fewest words that stay clear. Cut the scaffolding:
 - **Code blocks** — verbatim, runnable; never "..." shorthand the user must expand.
 - **Identifiers, paths, commands, versions, error messages** — exact. "the auth middleware" ≠ `requireAuth()`.
 - **Anything to copy, paste, or run.**
+
+**Don't abbreviate prose words, at any intensity.** `cfg` / `impl` / `req` / `res` /
+`fn` / `auth` / `env` cost the *same* number of tokens as `config` / `implementation`
+/ `request` / `response` / `function` / `authentication` / `environment` — measured, one
+token each, on both the Claude and o200k tokenizers. Same for `→` versus a comma. You
+pay nothing and charge the reader to decode. Terseness comes from **dropping words**,
+never from shortening them. Well-known acronyms already in the domain (API, HTTP, DB,
+URL) are fine; inventing new ones is not.
 
 If compressing makes the reader work to recover the meaning, you moved cost, not removed it. Stop there.
 

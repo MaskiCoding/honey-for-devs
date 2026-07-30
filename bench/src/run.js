@@ -13,7 +13,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const { extractInfo } = require("./extract");
+const { extractInfo, loc } = require("./extract");
 const { grade } = require("./grade");
 const { gradeWeb } = require("./grade-web");
 const { receiverPrompt, parseAnswers, scoreRelay } = require("./relay");
@@ -214,6 +214,7 @@ async function runCell(task, variantName, system, run) {
     passed: g.passed,
     grade_detail: g.detail,
     nblocks: ex.nblocks,
+    loc: loc(code), // Lever 1 measured directly, not proxied through output tokens
     judge: median(scores),
     judge_min: scores.length ? Math.min(...scores) : null,
     judge_max: scores.length ? Math.max(...scores) : null,

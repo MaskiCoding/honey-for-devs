@@ -32,7 +32,13 @@ are the ones an independent paired benchmark would reproduce.
 | Endpoint | Definition |
 |---|---|
 | Δ output tokens | paired per-task median vs the control arm |
+| Δ LOC | paired per-task median non-blank lines of extracted code — Lever 1 measured directly |
 | Δ cost | paired per-task median vs the control arm, all four token classes |
+
+Output tokens are a *proxy* for Lever 1: a reply can be terse in prose and still emit a
+bloated function, or the reverse. `Δ LOC` measures the code itself, and the two do come
+apart — on `full-opus48` code tasks Ponytail is +60% output but flat on LOC. Backfill it
+into an existing stamp from the saved replies with `node src/backfill-loc.js <stamp>`.
 
 **Secondary**
 
@@ -88,6 +94,17 @@ Never quote k=1. In order, cheapest first:
 Every result set snapshots each variant's resolved system prompt plus its hash
 (`results/<stamp>/systems/`, `meta.variant_hashes`), so "the skill didn't help" can always
 be distinguished from "the skill never loaded".
+
+## Competitor pins
+
+`variants/caveman.md` and `variants/ponytail.md` are frozen copies of the upstream
+prompts, so a live-loaded `honey` can't drift against moving competitors mid-experiment.
+The cost is that they go stale: both were refreshed on 2026-07-30 after upstream revisions
+(Caveman dropped prose abbreviations and causal arrows from `ultra` on tokenizer grounds
+and restated its headline from "~75%" to "65% (measured)"; Ponytail added a repo-reuse
+rung, an understand-before-you-climb guard, and a root-cause rule). Re-check them before
+any paid run — comparing against a year-old competitor is not a fair benchmark, and the
+refresh invalidates prior stamps for competitor columns.
 
 ## Known limits
 
