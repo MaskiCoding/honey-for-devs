@@ -157,6 +157,83 @@ test("sqlite3 absent: opencode skipped with warning, others still reported", (t)
   assert.ok(!rows.some((x) => x.app === "opencode"));
 });
 
+// --savings expectations: ledger covers s1+s2 (mode full) -> claude-opus-5
+// output 220 (dedup), k = R/(1-R) with R from the committed stamp for "opus";
+// a transcript with an unstamped model gets no claim, only a footnote.
+const ecfg = require("../hooks/eco-config.json");
+const K_OPUS = (() => {
+  const R = ecfg.savings_provenance.by_model.opus.ratio;
+  return R / (1 - R);
+})();
+
+let savingsCfg; // CLAUDE_CONFIG_DIR holding the ledger
+
+before(() => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "honey-savings-"));
+  savingsCfg = tmp;
+  const mystery = path.join(tmp, "mystery.jsonl");
+  fs.writeFileSync(
+    mystery,
+    JSON.stringify({ type: "assistant", timestamp: "2026-01-01T10:00:00.000Z", requestId: "req_m", message: { id: "msg_m", model: "mystery-9", usage: { input_tokens: 1, output_tokens: 100, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } } }) + "\n"
+  );
+  const lines = [
+    { ts: Date.UTC(2026, 0, 1), transcript_path: path.join(FX, "claude", "projects", "proj-a", "s1.jsonl"), mode: "full" },
+    { ts: Date.UTC(2026, 0, 2), transcript_path: path.join(FX, "claude", "projects", "proj-b", "s2.jsonl"), mode: "full" },
+    { ts: Date.UTC(2026, 0, 3), transcript_path: path.join(tmp, "gone.jsonl"), mode: "full" }, // deleted transcript
+    { ts: Date.UTC(2026, 0, 4), transcript_path: mystery, mode: "full" },
+  ];
+  fs.writeFileSync(path.join(tmp, ".honey-usage-ledger.jsonl"), lines.map((l) => JSON.stringify(l)).join("\n") + "\n");
+});
+
+test("--savings: ledger-gated, stamp-gated, dedup holds; unstamped models footnoted", () => {
+  const r = run(["--savings", "--json"], { CLAUDE_CONFIG_DIR: savingsCfg });
+  assert.equal(r.status, 0, r.stderr);
+  const sv = JSON.parse(r.stdout);
+  assert.equal(sv.rows.length, 1);
+  const row = sv.rows[0];
+  assert.equal(row.model, "claude-opus-5");
+  assert.equal(row.mode, "full");
+  assert.equal(row.output, 220); // m1 counted once across s1+s2, m2 once
+  assert.equal(row.sessions, 2);
+  close(row.savedTokens, 220 * K_OPUS);
+  close(row.savedUsd, dollars("claude-opus-5", { output: 220 * K_OPUS }));
+  assert.ok(row.savedGco2 > 0);
+  assert.deepEqual(sv.skipped, { output: 100, models: ["mystery-9"] });
+  assert.equal(sv.trackedSince, Date.UTC(2026, 0, 1));
+  assert.ok(sv.labels[0].includes("not measured"));
+  const table = run(["--savings"], { CLAUDE_CONFIG_DIR: savingsCfg });
+  assert.match(table.stdout, /tracked since 2026-01-01/);
+  assert.match(table.stdout, /no committed bench stamp — no savings claimed/);
+});
+
+test("--savings: honors date filters, rejects --client/--daily", () => {
+  const sv = JSON.parse(run(["--savings", "--json", "--since", "2026-01-02"], { CLAUDE_CONFIG_DIR: savingsCfg }).stdout);
+  assert.equal(sv.rows[0].output, 20); // only m2's day
+  assert.equal(run(["--savings", "--client", "codex"]).status, 1);
+  assert.equal(run(["--savings", "--daily"]).status, 1);
+});
+
+test("--savings: no ledger -> empty report, exit 0", () => {
+  const r = run(["--savings"], { CLAUDE_CONFIG_DIR: emptyDir });
+  assert.equal(r.status, 0);
+  assert.match(r.stdout, /no tracked Honey sessions yet/);
+});
+
+test("SessionStart hook appends a ledger line when Honey is active", () => {
+  const cfg = fs.mkdtempSync(path.join(os.tmpdir(), "honey-hook-"));
+  fs.writeFileSync(path.join(cfg, ".honey-active"), "full\n");
+  const r = spawnSync(process.execPath, [path.join(__dirname, "..", "hooks", "honey-session.js")], {
+    encoding: "utf8",
+    input: JSON.stringify({ session_id: "s", transcript_path: "/tmp/x.jsonl" }),
+    env: { ...process.env, CLAUDE_CONFIG_DIR: cfg },
+  });
+  assert.equal(r.status, 0, r.stderr);
+  const entry = JSON.parse(fs.readFileSync(path.join(cfg, ".honey-usage-ledger.jsonl"), "utf8").trim());
+  assert.equal(entry.transcript_path, "/tmp/x.jsonl");
+  assert.equal(entry.mode, "full");
+  assert.ok(entry.ts > 0);
+});
+
 test("unit: dollars() rates and cache multipliers mirror bench/pricing.json", () => {
   close(dollars("claude-opus-5", { input: 1e6 }), 5.0);
   close(dollars("claude-opus-5", { cache_write: 1e6 }), 5.0 * 1.25); // _default multiplier

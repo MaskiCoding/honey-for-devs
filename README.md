@@ -473,11 +473,16 @@ Details that keep the numbers honest:
 - **CO₂** — the same served EcoLogits estimate as the badge
   ([`hooks/eco.js`](hooks/eco.js)), from output tokens; the badge's caveats
   apply.
-- **No "saved" column** — this CLI reports what was actually spent. Honey's
-  savings is a modeled per-session counterfactual that needs to know Honey was
-  active and in which mode; app logs don't record that, so a cross-history
-  savings figure would be invented. For savings, use the badge or `/honey-eco`
-  on a live session.
+- **Savings are ledger-gated** — the default report has no "saved" column: it
+  shows what was actually spent, and app logs don't record whether Honey was
+  active. `honey-usage --savings` claims savings **only** for sessions the
+  SessionStart hook logged to `$CLAUDE_CONFIG_DIR/.honey-usage-ledger.jsonl`
+  (Claude Code, since Honey was installed — history before that is never
+  claimed), and only for models with a committed bench stamp
+  ([`hooks/eco-config.json`](hooks/eco-config.json) `savings_provenance`).
+  Everything else is footnoted, not estimated. The figures stay modeled
+  counterfactuals (`est. modeled from bench/results/… — not measured`), same
+  basis as the badge.
 
 ## How it stays in sync
 
