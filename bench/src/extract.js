@@ -85,4 +85,9 @@ function extractCode(text, lang) {
   return extractInfo(text, lang).code;
 }
 
-module.exports = { extractCode, extractInfo };
+// Lines of extracted code, blanks excluded. Output tokens are only a *proxy* for
+// Lever 1 — a reply can be terse in prose and still emit a bloated function. This
+// measures the code volume directly. Comments count: they are code the agent wrote.
+const loc = (code) => (code ? code.split("\n").filter((l) => l.trim()).length : 0);
+
+module.exports = { extractCode, extractInfo, loc };

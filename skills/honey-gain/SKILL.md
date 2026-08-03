@@ -24,9 +24,12 @@ Report the **committed** benchmark results — never a guessed or per-session nu
 
    Offline, no API spend. Swap `--stamp full-gpt55` for the cross-provider figure, drop
    `--by-type` for the whole suite. Hive handoff numbers → [`bench/hive/RESULTS.md`](../../bench/hive/RESULTS.md).
-2. Report the tier table terse: **Δ output with its `p`**, judge as win/loss/tie, and the
-   test pass-rate, per variant. The tier split *is* the finding — deepest on code and
-   handoffs, a statistical tie on user-facing (the polish carve-out).
+2. Report the tier table terse: **Δ LOC and Δ output, each with its `p`**, judge as
+   win/loss/tie, and the test pass-rate, per variant. The tier split *is* the finding —
+   deepest on code and handoffs, output a statistical tie on user-facing (the polish
+   carve-out). Lead with **Δ LOC**: it measures Lever 1 directly, while output tokens mix
+   code with the prose around it, and the two come apart (Ponytail cuts lines but narrates
+   at length).
 
 ## Rules
 

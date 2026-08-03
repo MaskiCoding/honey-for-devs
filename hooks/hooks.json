@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/honey-session.js\""
+            "command": "node -e \"require('module').runMain(process.argv[1]=process.argv[1].split(String.fromCharCode(92)).join('/'))\" \"${CLAUDE_PLUGIN_ROOT}/hooks/honey-session.js\""
           }
         ]
       }
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/honey-subagent.js\""
+            "command": "node -e \"require('module').runMain(process.argv[1]=process.argv[1].split(String.fromCharCode(92)).join('/'))\" \"${CLAUDE_PLUGIN_ROOT}/hooks/honey-subagent.js\""
           }
         ]
       }
@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/logcompress-hook.js\""
+            "command": "node -e \"require('module').runMain(process.argv[1]=process.argv[1].split(String.fromCharCode(92)).join('/'))\" \"${CLAUDE_PLUGIN_ROOT}/hooks/logcompress-hook.js\""
           }
         ]
       }

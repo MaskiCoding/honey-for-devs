@@ -71,6 +71,10 @@ async function completeAnthropic({ model, system, user, maxTokens, thinking }) {
   const u = data.usage || {};
   return {
     text,
+    // Truncation must be visible: on Opus 5 / Fable 5 thinking is ON by default and shares
+    // the max_tokens budget, so a too-small budget silently returns a short answer. Unreported,
+    // that reads as a token *saving* and corrupts the comparison.
+    stop_reason: data.stop_reason || null,
     usage: {
       input: u.input_tokens || 0,
       output: u.output_tokens || 0,

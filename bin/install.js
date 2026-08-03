@@ -27,6 +27,7 @@ const path = require("path");
 
 const REPO = path.resolve(__dirname, "..");
 const { NAMES: OPENCLAW_SKILLS } = require("../scripts/build-openclaw-skills");
+const { NAMES: HERMES_SKILLS } = require("../scripts/build-hermes-skills");
 const SLUG = "Green-PT/honey-for-devs";
 const URL = "https://github.com/" + SLUG;
 const HOME = os.homedir();
@@ -200,6 +201,27 @@ const CLI_AGENTS = [
       note("  applied on coding tasks; also exposes /honey");
     },
     uninstall: () => OPENCLAW_SKILLS.forEach((s) => run("clawhub uninstall " + s)),
+  },
+  {
+    id: "hermes",
+    name: "Hermes Agent",
+    detect: () => which("hermes") || dirExists(path.join(HOME, ".hermes")),
+    // Native Hermes skills (portable SKILL.md standard) copied into
+    // ~/.hermes/skills/. Not always-on: activate with /honey or by asking;
+    // workspace AGENTS.md gives per-project always-on.
+    install: () => {
+      for (const s of HERMES_SKILLS)
+        copy(path.join(".hermes", "skills", s, "SKILL.md"), path.join(HOME, ".hermes", "skills", s, "SKILL.md"));
+      note("  activate with /honey (or ask); workspace AGENTS.md is always-on");
+    },
+    uninstall: () => {
+      for (const s of HERMES_SKILLS) {
+        const dir = path.join(HOME, ".hermes", "skills", s);
+        if (DRY) { note("  [dry-run] remove " + dir); continue; }
+        fs.rmSync(dir, { recursive: true, force: true });
+        note("  removed " + dir);
+      }
+    },
   },
 ];
 

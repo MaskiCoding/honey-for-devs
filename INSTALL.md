@@ -56,6 +56,20 @@ honey-design`, and so on). OpenClaw applies it on coding tasks and also exposes 
 `/honey` command. Without ClawHub, copy [`.openclaw/skills/honey`](.openclaw/skills/)
 into `~/.openclaw/skills/`.
 
+## Option A4 — Hermes Agent
+
+```bash
+node bin/install.js --only hermes
+```
+
+Copies the generated Hermes skill package ([`.hermes/skills/`](.hermes/skills/))
+into `~/.hermes/skills/` — the core `honey` skill plus the companions
+(`honey-review`, `honey-design`, and so on), in the portable SKILL.md format
+Hermes reads natively. Skills aren't always-on in Hermes: activate with
+`/honey` (or just ask); for per-project always-on, drop the root `AGENTS.md`
+into your workspace — Hermes reads workspace `AGENTS.md` automatically.
+Manual alternative: `cp -r .hermes/skills/* ~/.hermes/skills/`.
+
 ## Option B — One-line installer (all agents)
 
 macOS / Linux / WSL / Git Bash:
@@ -94,7 +108,7 @@ Pass flags through the pipe with `bash -s --`, e.g.
 | `--yes`, `-y` | Skip the wizard; non-interactive auto-detect install |
 | `--all` | Install detected CLI agents + statusline badge |
 | `--minimal` | Plugin/extension installs only; skip the statusline wiring |
-| `--only <id>` | Restrict to one agent (repeatable). IDs: `claude`, `codex`, `copilot`, `gemini`, `cursor`, `windsurf`, `cline`, `copilot-editor`, `opencode`, `openclaw`, `kiro`, `agents` |
+| `--only <id>` | Restrict to one agent (repeatable). IDs: `claude`, `codex`, `copilot`, `gemini`, `cursor`, `windsurf`, `cline`, `copilot-editor`, `opencode`, `openclaw`, `hermes`, `kilo`, `kiro`, `agents` |
 | `--with-init` | Also drop editor rule files into the **current directory** |
 | `--dry-run` | Print every action without writing anything (works inside the wizard too) |
 | `--list` | Show the agent matrix and what's detected |

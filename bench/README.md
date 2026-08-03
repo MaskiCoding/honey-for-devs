@@ -284,6 +284,21 @@ Add a `code` task: drop a folder in `tasks/` with `prompt.md`, `meta.json`, a `t
 Full cross-provider run — `plain` rubric, 4-judge cross-family panel
 (opus + sonnet + haiku + gpt-5.5), 23 tasks, 3 runs, stamps `full-opus48` / `full-gpt55`.
 
+> ⚠ **Partially re-verified.** These stamps predate the 2026-07-30 skill revision
+> (repo-reuse ladder rung, root-cause rule, no-prose-abbreviation rule) and the refresh of
+> `variants/caveman.md` / `variants/ponytail.md` to current upstream.
+>
+> A live **k=1 smoke** on the revised skill (`results/smoke-postchange`, 23 tasks,
+> baseline vs honey, single judge) reproduces the headline and passes the gate: Δ output
+> **−29%** (p=0.040), Δ LOC **−38%** (p=0.001), tests 100% vs baseline 96%, judge 5/2/14
+> (p=0.453 — tie). `node src/gate.js smoke-postchange full-opus48` → OK, no regression.
+>
+> Per the [run ladder](METHODOLOGY.md#run-ladder), **k=1 is not quotable**. It establishes
+> "no regression", not a number. The honey columns below still describe the previous
+> `SKILL.md`, and the competitor columns still describe older upstream prompts. A `RUNS=3`
+> re-run is needed before either is quoted as current. `Δ LOC` is backfilled from the saved
+> replies and is valid for these stamps as-is.
+
 Every figure is a **paired per-task median** vs `baseline` with a two-sided Wilcoxon `p`;
 judge is an exact sign test over per-task wins/losses/ties. `(ns)` = misses p<0.05, i.e. a
 tie. Regenerate any of it offline, no API spend:
@@ -295,21 +310,43 @@ node src/report.js --stamp full-opus48 --by-type  # per tier
 
 ### Opus 4.8 (`full-opus48`)
 
-| Variant | Δ output | Δ new-input | Δ cost | Judge W/L/T | sign p | Tests |
-|---------|---------:|------------:|-------:|------------:|-------:|------:|
-| caveman | **−22%** (p<0.001) | −1% | −10% (p<0.001) | 3/16/2 | **0.004** | 94% |
-| ponytail | −7% (ns, p=0.267) | +342% | +18% (ns) | 1/19/1 | **<0.001** | 90% |
-| honey | **−29%** (p=0.020) | −1% | −21% (ns, p=0.104) | 8/11/2 | 0.648 | **100%** |
-| honey-design | **−29%** (p=0.003) | −1% | −17% (p=0.017) | 11/7/3 | 0.481 | **100%** |
+| Variant | Δ output | Δ LOC | Δ new-input | Δ cost | Judge W/L/T | sign p | Tests |
+|---------|---------:|------:|------------:|-------:|------------:|-------:|------:|
+| caveman | **−22%** (p<0.001) | −28% (p<0.001) | −1% | −10% (p<0.001) | 3/16/2 | **0.004** | 94% |
+| ponytail | −7% (ns, p=0.267) | −33% (p=0.028) | +342% | +18% (ns) | 1/19/1 | **<0.001** | 90% |
+| honey | **−29%** (p=0.020) | **−43%** (p<0.001) | −1% | −21% (ns, p=0.104) | 8/11/2 | 0.648 | **100%** |
+| honey-design | **−29%** (p=0.003) | **−44%** (p<0.001) | −1% | −17% (p=0.017) | 11/7/3 | 0.481 | **100%** |
 
 ### gpt-5.5 (`full-gpt55`)
 
-| Variant | Δ output | Δ new-input | Δ cost | Judge W/L/T | sign p | Tests |
-|---------|---------:|------------:|-------:|------------:|-------:|------:|
-| caveman | −14% (p=0.020) | +865% | +12% (ns) | 8/3/10 | 0.227 | 99% |
-| ponytail | +35% (ns, p=0.584) | +315% | +42% (ns) | 4/15/2 | **0.019** | 100% |
-| honey | **−20%** (p=0.004) | +573% | +14% (ns, p=0.820) | 6/8/7 | 0.791 | 99% |
-| honey-design | −12% (p<0.001) | +728% | +17% (ns) | 8/6/7 | 0.791 | 97% |
+| Variant | Δ output | Δ LOC | Δ new-input | Δ cost | Judge W/L/T | sign p | Tests |
+|---------|---------:|------:|------------:|-------:|------------:|-------:|------:|
+| caveman | −14% (p=0.020) | +0% (ns) | +865% | +12% (ns) | 8/3/10 | 0.227 | 99% |
+| ponytail | +35% (ns, p=0.584) | −7% (ns) | +315% | +42% (ns) | 4/15/2 | **0.019** | 100% |
+| honey | **−20%** (p=0.004) | **−18%** (p<0.001) | +573% | +14% (ns, p=0.820) | 6/8/7 | 0.791 | 99% |
+| honey-design | −12% (p<0.001) | **−33%** (p<0.001) | +728% | +17% (ns) | 8/6/7 | 0.791 | 97% |
+
+### Opus 5 (`full-opus5-lean`) — current-generation, incl. the lean ablation
+
+23 tasks × 3 runs, single haiku judge, `MAX_TOKENS=16000`. 207 cells, zero refusals,
+zero truncation. The judge here is one model rather than the cross-family panel — a
+deliberate cost tradeoff, re-scorable offline with `src/rejudge.js`; the objective
+columns (tests, Δ LOC, Δ output) don't involve it.
+
+| Variant | Δ output | Δ LOC | Δ cost | Judge W/L/T | sign p | Tests |
+|---------|---------:|------:|-------:|------------:|-------:|------:|
+| honey | **−38%** (p<0.001) | **−71%** (p<0.001) | −24% (p<0.001) | 10/5/5 | 0.302 | **100%** |
+| honey-lean | −35% (p<0.001) | −50% (p<0.001) | **−32%** (p<0.001) | 11/4/5 | 0.118 | 96% |
+
+**Honey's cut is bigger on the newer model, not smaller** — −71% LOC on Opus 5 against
+−39% on Opus 4.8 — and it is the only arm with no failing cell (baseline itself fails
+four). That is worth stating because the 2026 prompting guidance predicted the opposite;
+see [`METHODOLOGY.md`](METHODOLOGY.md#lean-prompt-ablation).
+
+`honey-lean` is the tested-and-rejected 781-token ablation
+([`variants/honey-lean.md`](variants/honey-lean.md)): it buys 8 points of cost with 21
+points of LOC and three test cells — **a cheaper prompt, not a better one.** It is opt-in
+and kept only so the negative result stays reproducible.
 
 ### `honey` by tier
 
@@ -328,6 +365,12 @@ Full tables for every variant: `node src/report.js --stamp <stamp> --by-type`.
 - **`honey` is the only variant that never regresses tests** (100% Opus / 99% gpt) while
   cutting output on both providers, and the only one **lossless on the adversarial relay**
   (others drop to 50–67% recovery on Opus). Objective, judge-independent.
+- **LOC is the stronger signal, and it says something output tokens don't.** Honey cuts
+  **−43% of lines** overall (p<0.001) and **−53% on code tasks** (p=0.002) at 100% test
+  pass — a bigger, more significant effect than the token delta, because output tokens
+  mix code with the prose around it. It also rehabilitates Ponytail: its output is +60%
+  on Opus code tasks, but its *code* is flat (+15%, ns) — it writes small code and
+  narrates it at length. Caveman is the reverse on gpt-5.5: −14% output, **+0% LOC**.
 - **Quality is a tie overall, and now it's tested** — p=0.648 (Opus) / 0.791 (gpt). But the
   whole-suite tie is two opposing effects cancelling on Opus: honey **wins user-facing
   6/0/1 (p=0.031)** and **loses the code judge 2/11/1 (p=0.022)**. Code tests are 100% for
