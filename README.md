@@ -9,7 +9,7 @@
 cross-tool coding skill that cuts AI coding-agent token usage and LLM API costs —
 making agents emit less code *and* less prose without losing correctness. It works
 with **Claude (claude.ai and the API), Claude Code, Cursor, GitHub Copilot, Codex, Gemini CLI, Windsurf, Cline,
-OpenClaw, Kiro, and Kilo Code**. Three independent levers, applied reflexively:
+OpenClaw, Kiro, Kilo Code, and Hermes Agent**. Three independent levers, applied reflexively:
 
 1. **Less code** — YAGNI first. Walk a ladder (does it need to exist? → stdlib →
    language native → existing dependency → one line → minimum block) and stop at
@@ -376,6 +376,7 @@ PATH. Safe to re-run; skips tools you don't have.
 | GitHub Copilot CLI | `copilot plugin marketplace add Green-PT/honey-for-devs` then `copilot plugin install honey@greenpt` |
 | Gemini CLI | `gemini extensions install https://github.com/Green-PT/honey-for-devs` |
 | OpenClaw | `clawhub install honey` (companions: `clawhub install honey-review`, …) |
+| Hermes Agent | `node bin/install.js --only hermes` — copies `.hermes/skills/` into `~/.hermes/skills/`; activate with `/honey` (workspace `AGENTS.md` is always-on) |
 | Cursor | copy `.cursor/rules/honey.mdc` into your project |
 | Windsurf | copy `.windsurf/rules/honey.md` into your project |
 | Cline | copy `.clinerules/honey.md` into your project (token-conscious: the compact `skills/honey/cline-rule.md`) |
@@ -440,9 +441,11 @@ node scripts/build-rules.js          # regenerate all rule files
 node scripts/build-rules.js --check  # CI: fail if any copy drifted
 ```
 
-The OpenClaw skill package (`.openclaw/skills/`) is generated the same way from
-`skills/`; rerun `node scripts/build-openclaw-skills.js` after changing a skill.
-`tests/openclaw-skills.test.js` fails if a committed copy is stale.
+The OpenClaw (`.openclaw/skills/`) and Hermes (`.hermes/skills/`) skill packages
+are generated the same way from `skills/`; rerun
+`node scripts/build-openclaw-skills.js` / `node scripts/build-hermes-skills.js`
+after changing a skill. `tests/openclaw-skills.test.js` and
+`tests/hermes-skills.test.js` fail if a committed copy is stale.
 
 ## License
 
