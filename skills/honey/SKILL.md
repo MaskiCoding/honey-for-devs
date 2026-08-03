@@ -237,7 +237,7 @@ Only when the user explicitly invokes `/honey [lite|full|ultra|off]` (or asks to
 turn Honey on/off) — not when this skill loads reflexively — persist the state
 first by running exactly:
 
-`node "${CLAUDE_PLUGIN_ROOT}/hooks/honey-state.js" set $ARGUMENTS`
+`node -e "require('module').runMain(process.argv[1]=process.argv[1].split(String.fromCharCode(92)).join('/'))" "${CLAUDE_PLUGIN_ROOT}/hooks/honey-state.js" set $ARGUMENTS`
 
 (If `CLAUDE_PLUGIN_ROOT` is unexpanded, `hooks/honey-state.js` lives at the
 plugin root, two directories above this file.) Empty argument = `full`. Then act
