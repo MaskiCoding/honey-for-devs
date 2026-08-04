@@ -207,7 +207,14 @@ async function runCell(task, variantName, system, run) {
       maxTokens: 600,
     });
     const sc = scoreRelay(parseAnswers(rec.text, task.meta.queries.length), task.meta.queries);
-    return { ...common, passed: sc.passed, accuracy: sc.accuracy, grade_detail: sc.detail, judge: null };
+    return {
+      ...common,
+      passed: sc.passed,
+      accuracy: sc.accuracy,
+      grade_detail: sc.detail,
+      receiver_stop: rec.stop_reason ?? null, // a refusing receiver is apparatus failure, not a variant's fault
+      judge: null,
+    };
   }
 
   const lang = task.meta.lang === "python" ? "python" : type === "web" ? "html" : "javascript";
@@ -292,6 +299,7 @@ const cellKey = (v, t, r) => `${v}__${t}__r${r}`;
 
   const meta = {
     model: MODEL,
+    receiver: RECEIVER_MODEL,
     judge: JUDGE_MODELS,
     judge_rubric: process.env.JUDGE_RUBRIC || "plain",
     runs: RUNS,
@@ -329,7 +337,9 @@ const cellKey = (v, t, r) => `${v}__${t}__r${r}`;
   process.stdout.write("\n");
   persist(); // covers the 0-new-cells case and refreshes meta
 
-  const { aggregate, table, pairedTable } = require("./report");
+  const { aggregate, table, pairedTable, refusalSummary } = require("./report");
+  const refNote = refusalSummary(records);
+  if (refNote) console.log(`\n⚠ ${refNote}`);
   const shown = ALL_VARIANTS.filter((v) => VARIANTS.includes(v));
   const rows = aggregate(records, shown, MODEL);
   const tbl = table(rows, shown);
@@ -338,6 +348,7 @@ const cellKey = (v, t, r) => `${v}__${t}__r${r}`;
     `# Honey benchmark results\n\n` +
     `model: \`${MODEL}\` · judge: \`${JUDGE_MODELS.join("+")}\` · tasks: ${tasks.length} · runs: ${RUNS}` +
     `${THINKING ? ` · thinking: ${THINKING}` : ""}${MOCK ? " · **MOCK**" : ""}\n\n` +
+    (refNote ? `> ⚠ ${refNote}\n\n` : "") +
     `## Paired (headline)\n\n${ptbl}\n\n` +
     `Every Δ is a **per-task** delta vs \`baseline\`: runs collapse by median, tasks pair up,\n` +
     `and the column is the median of those paired deltas. \`p\` is a two-sided Wilcoxon\n` +

@@ -5,9 +5,11 @@ results/*
 !results/full-opus48/
 !results/full-gpt55/
 !results/full-opus5-lean/
+!results/full-fable5/
 results/full-opus48/raw/
 results/full-gpt55/raw/
 results/full-opus5-lean/raw/
+results/full-fable5/raw/
 
 node_modules/
 __pycache__/

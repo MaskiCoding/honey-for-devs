@@ -52,8 +52,24 @@ const stdev = (xs) => {
 const pct = (x) => `${(x * 100).toFixed(0)}%`;
 const signedPct = (x) => `${x >= 0 ? "+" : ""}${(x * 100).toFixed(0)}%`;
 
+// A cell the model REFUSED (stop_reason "refusal" — seen on Fable 5 with bare task
+// prompts) measures the safety layer, not the skill. Refused records are excluded from
+// every statistic; a task whose arm loses all its runs then drops from pairing on the
+// existing missing-arm rule. Never silent: callers print refusalSummary().
+const dropRefusals = (records) => records.filter((r) => r.stop_reason !== "refusal");
+function refusalSummary(records) {
+  const ref = records.filter((r) => r.stop_reason === "refusal");
+  if (!ref.length) return null;
+  const by = {};
+  for (const r of ref) (by[`${r.variant}/${r.task}`] ||= 0), (by[`${r.variant}/${r.task}`] += 1);
+  return `${ref.length} refused cell(s) excluded: ${Object.entries(by)
+    .map(([k, n]) => `${k}×${n}`)
+    .join(", ")}`;
+}
+
 // records: [{variant, task, run, usage:{input,output,cache_read,cache_write}, passed, judge, gco2}]
 function aggregate(records, order, model) {
+  records = dropRefusals(records);
   const byVariant = {};
   for (const r of records) (byVariant[r.variant] ||= []).push(r);
 
@@ -102,6 +118,7 @@ const p = (x) => (x == null ? "—" : x < 0.001 ? "<0.001" : x.toFixed(3));
 const delta = (d) => (d.medianRel == null ? "—" : `${signedPct(d.medianRel)}${d.p != null && d.p >= 0.05 ? " (ns)" : ""}`);
 
 function paired(records, order, model, baseline = "baseline") {
+  records = dropRefusals(records);
   const m = METRICS(model);
   const out = {};
   for (const v of order) {
@@ -154,7 +171,7 @@ function table(rows, order) {
   return [header, ...lines].join("\n");
 }
 
-module.exports = { aggregate, table, paired, pairedTable, dollars, newInput };
+module.exports = { aggregate, table, paired, pairedTable, dollars, newInput, refusalSummary };
 
 // ---- CLI: recompute a committed stamp offline, no API spend ----------------------
 //
@@ -184,6 +201,8 @@ if (require.main === module) {
     return;
   }
 
+  const refNote = refusalSummary(records);
+  if (refNote) console.log(`⚠ ${refNote}\n`);
   console.log("PAIRED (per-task median vs baseline, Wilcoxon; judge by sign test)\n");
   console.log(pairedTable(records, variants, meta.model) + "\n");
   console.log("ARM TOTALS (volumes; the ratio column is outlier-sensitive)\n");
