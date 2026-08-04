@@ -13,7 +13,7 @@
   "_savings_note": "Output-token reduction vs a no-Honey baseline (CO2 scales with output tokens). This is a MODELLED counterfactual carried over from the benchmark — it is NOT measured for the session being reported, and every consumer must say so. 'full' is the paired per-task median from the committed stamp in savings_provenance (all task tiers, not the flattering code-only slice); lite/ultra keep their historical ratio to 'full' and remain extrapolations, never measured. Per tier on the same stamp: code -39% (p=0.007), user-facing -7% (ns, p=0.673), agent-to-agent -49% (n=2). $ savings run lower than CO2 since input isn't cut — and can go negative on a cold session.",
   "savings_vs_baseline": { "lite": 0.17, "full": 0.29, "ultra": 0.38 },
 
-  "_savings_provenance_note": "Which measurement the ratio above came from. by_model gates the claim: a session whose model matches no key here gets NO savings line rather than an extrapolated one. Regenerate after a live bench with: node bench/src/report.js --stamp <stamp>",
+  "_savings_provenance_note": "Which measurement the ratio above came from. by_model gates the claim: a session whose model matches no key here gets NO savings line rather than an extrapolated one. An entry's 'n' overrides the suite-wide count when tasks were excluded (fable: cells with stop_reason 'refusal' — Fable 5 refuses some bare bench prompts — are dropped from pairing; see the stamp's report.md). Regenerate after a live bench with: node bench/src/report.js --stamp <stamp>",
   "savings_provenance": {
     "measured_mode": "full",
     "method": "paired per-task median delta in output tokens vs baseline; runs collapsed by median; two-sided Wilcoxon signed-rank",
@@ -21,7 +21,8 @@
     "n": 23,
     "by_model": {
       "opus": { "ratio": 0.286, "p": 0.020, "stamp": "bench/results/full-opus48", "model": "claude-opus-4-8" },
-      "gpt-5": { "ratio": 0.196, "p": 0.004, "stamp": "bench/results/full-gpt55", "model": "gpt-5.5" }
+      "gpt-5": { "ratio": 0.196, "p": 0.004, "stamp": "bench/results/full-gpt55", "model": "gpt-5.5" },
+      "fable": { "ratio": 0.393, "p": 0.0003, "n": 17, "stamp": "bench/results/full-fable5", "model": "claude-fable-5" }
     }
   },
 
