@@ -120,7 +120,7 @@ function savingsInfo(cfg, mode, model) {
     model: src.model,
     p: src.p,
     label: measured
-      ? `modeled from ${src.stamp || prov.stamp} (${src.model}, n=${prov.n}, p=${src.p}) — not measured for this session`
+      ? `modeled from ${src.stamp || prov.stamp} (${src.model}, n=${src.n ?? prov.n}, p=${src.p}) — not measured for this session`
       : `extrapolated from the '${prov.measured_mode}' figure in ${src.stamp || prov.stamp} — not measured for this session, and this mode was never benchmarked`,
   };
 }
