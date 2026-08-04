@@ -53,6 +53,19 @@ function main() {
 
   if (!mode || mode === "off") process.exit(0);
 
+  // Ledger for `honey-usage --savings`: one line per Honey session start, so
+  // savings can later be claimed only for sessions verifiably run under Honey
+  // (and in which mode). Append-only; never let it break the hook.
+  try {
+    var hookInput = JSON.parse(fs.readFileSync(0, "utf8"));
+    if (hookInput && hookInput.transcript_path) {
+      fs.appendFileSync(
+        path.join(DIR, ".honey-usage-ledger.jsonl"),
+        JSON.stringify({ ts: Date.now(), transcript_path: hookInput.transcript_path, mode: mode }) + "\n"
+      );
+    }
+  } catch (e) {}
+
   const warnings = [];
   const nodeMajor = parseInt(process.versions.node, 10);
   if (nodeMajor < 14) {

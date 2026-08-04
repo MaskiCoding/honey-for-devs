@@ -7,6 +7,7 @@
 //   node src/run.js                 # live; needs ANTHROPIC_API_KEY
 //   node src/run.js --mock          # no API, validates the whole pipeline for free
 //   MODEL=claude-opus-4-8 RUNS=3 node src/run.js --variants honey,baseline --tasks flatten
+//   node src/run.js --resume        # continue an aborted run: skip cells already in results.json
 //
 // Env: MODEL, JUDGE_MODELS (comma list = panel), RUNS, THINKING (token budget, 0=off), CONCURRENCY.
 
@@ -27,6 +28,7 @@ const flag = (name) => {
   return i !== -1 && i + 1 < args.length ? args[i + 1] : null;
 };
 const MOCK = args.includes("--mock");
+const RESUME = args.includes("--resume"); // skip cells already checkpointed in results.json
 const MODEL = process.env.MODEL || "claude-opus-4-8";
 const RECEIVER_MODEL = process.env.RECEIVER_MODEL || MODEL; // neutral decoder for relay tasks
 // Judge panel: median of N models cancels single-judge self-preference and noise.
@@ -95,6 +97,7 @@ let MOCK_VARIANT = "baseline";
 
 // --- model + judge (live or mock) ----------------------------------------------
 let complete, judge;
+let seedMockCache = () => {}; // resume: mark variants whose system was already billed fresh
 if (MOCK) {
   // Deterministic stand-in: returns the reference solution wrapped in prose whose
   // length scales by variant, so token deltas and the pipeline are exercised offline.
@@ -115,6 +118,7 @@ if (MOCK) {
     '<button class="cta">Get started</button></section><section>Features</section>' +
     "<section>Pricing</section></main><footer>©</footer></body></html>";
   const cachedSystems = new Set(); // simulate prompt caching: system billed fresh once per variant
+  seedMockCache = (v) => cachedSystems.add(v);
   complete = async ({ system, user }) => {
     // relay: encode call echoes the data; receiver call returns ground-truth answers
     if (MOCK_TASK.meta.type === "relay") {
@@ -242,6 +246,8 @@ function median(xs) {
 }
 
 // --- main ----------------------------------------------------------------------
+const cellKey = (v, t, r) => `${v}__${t}__r${r}`;
+
 (async () => {
   const tasks = loadTasks();
   const systems = Object.fromEntries(VARIANTS.map((v) => [v, loadVariant(v)]));
@@ -255,39 +261,35 @@ function median(xs) {
     ])
   );
 
-  // build the full work list (variant × task × run)
-  const cells = [];
-  for (const v of VARIANTS)
-    for (const task of tasks) for (let r = 0; r < RUNS; r++) cells.push({ v, task, r });
-
-  console.log(
-    `${MOCK ? "[MOCK] " : ""}model=${MODEL} judge=${JUDGE_MODELS.join("+")} variants=${VARIANTS.join(",")} ` +
-      `tasks=${tasks.length} runs=${RUNS} thinking=${THINKING} -> ${cells.length} generations`
-  );
-
-  let done = 0;
-  const records = await pmap(cells, MOCK ? 16 : CONCURRENCY, async (c) => {
-    const rec = await runCell(c.task, c.v, systems[c.v], c.r);
-    done++;
-    process.stdout.write(
-      `\r${done}/${cells.length}  ${c.v}/${c.task.meta.id}#${c.r} ` +
-        `${rec.passed ? "pass" : "FAIL"} judge=${rec.judge} out=${rec.usage.output}        `
-    );
-    return rec;
-  });
-  process.stdout.write("\n");
-
-  // persist
   const stamp = (process.env.STAMP || "latest").replace(/[^\w.-]/g, "_");
   const outDir = path.join(ROOT, "results", stamp);
   fs.mkdirSync(path.join(outDir, "raw"), { recursive: true });
   fs.mkdirSync(path.join(outDir, "systems"), { recursive: true });
-  for (const rec of records) {
-    const f = path.join(outDir, "raw", `${rec.variant}__${rec.task}__r${rec.run}.md`);
-    fs.writeFileSync(f, rec.reply);
-  }
   for (const [v, s] of Object.entries(systems)) if (s) fs.writeFileSync(path.join(outDir, "systems", `${v}.md`), s);
-  const slim = records.map(({ reply, ...r }) => r);
+  const outFile = path.join(outDir, "results.json");
+
+  // resume: paid generations are expensive; reload prior records and skip their cells.
+  // Refuse to mix result sets the hashes exist to keep apart.
+  let records = [];
+  if (RESUME && fs.existsSync(outFile)) {
+    let prior = null;
+    try { prior = JSON.parse(fs.readFileSync(outFile, "utf8")); } catch {}
+    if (prior) {
+      const pm = prior.meta || {};
+      const stale =
+        pm.model !== MODEL ||
+        !!pm.mock !== MOCK ||
+        VARIANTS.some((v) => v in (pm.variant_hashes || {}) && pm.variant_hashes[v] !== variantHashes[v]);
+      if (stale)
+        throw new Error(
+          `--resume: ${path.relative(REPO, outFile)} came from a different model/mock/variant prompt — use a fresh STAMP`
+        );
+      records = prior.records || [];
+    }
+  }
+  const done = new Set(records.map((r) => cellKey(r.variant, r.task, r.run)));
+  for (const v of new Set(records.map((r) => r.variant))) seedMockCache(v);
+
   const meta = {
     model: MODEL,
     judge: JUDGE_MODELS,
@@ -297,7 +299,35 @@ function median(xs) {
     mock: MOCK,
     variant_hashes: variantHashes,
   };
-  fs.writeFileSync(path.join(outDir, "results.json"), JSON.stringify({ meta, records: slim }, null, 2));
+  const persist = () => fs.writeFileSync(outFile, JSON.stringify({ meta, records }, null, 2));
+
+  // build the work list (variant × task × run), minus already-checkpointed cells
+  const cells = [];
+  for (const v of VARIANTS)
+    for (const task of tasks)
+      for (let r = 0; r < RUNS; r++)
+        if (!done.has(cellKey(v, task.meta.id, r))) cells.push({ v, task, r });
+
+  console.log(
+    `${MOCK ? "[MOCK] " : ""}model=${MODEL} judge=${JUDGE_MODELS.join("+")} variants=${VARIANTS.join(",")} ` +
+      `tasks=${tasks.length} runs=${RUNS} thinking=${THINKING} -> ${cells.length} generations` +
+      (done.size ? ` (${done.size} resumed)` : "")
+  );
+
+  let n = 0;
+  await pmap(cells, MOCK ? 16 : CONCURRENCY, async (c) => {
+    const { reply, ...rec } = await runCell(c.task, c.v, systems[c.v], c.r);
+    fs.writeFileSync(path.join(outDir, "raw", `${rec.variant}__${rec.task}__r${rec.run}.md`), reply);
+    records.push(rec);
+    persist(); // checkpoint every cell — an abort never loses paid generations
+    n++;
+    process.stdout.write(
+      `\r${n}/${cells.length}  ${c.v}/${c.task.meta.id}#${c.r} ` +
+        `${rec.passed ? "pass" : "FAIL"} judge=${rec.judge} out=${rec.usage.output}        `
+    );
+  });
+  process.stdout.write("\n");
+  persist(); // covers the 0-new-cells case and refreshes meta
 
   const { aggregate, table, pairedTable } = require("./report");
   const shown = ALL_VARIANTS.filter((v) => VARIANTS.includes(v));

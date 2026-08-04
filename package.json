@@ -8,7 +8,8 @@
   "bin": {
     "honey-install": "bin/install.js",
     "eso": "bin/eso.js",
-    "eson": "bin/eso.js"
+    "eson": "bin/eso.js",
+    "honey-usage": "bin/usage.js"
   },
   "scripts": {
     "bench:eso": "node bench/eso/run.mjs",
@@ -31,7 +32,8 @@
     "commands",
     ".claude-plugin",
     ".openclaw",
-    "AGENTS.md"
+    "AGENTS.md",
+    "bench/pricing.json"
   ],
   "devDependencies": {
     "@anthropic-ai/tokenizer": "^0.0.4",
