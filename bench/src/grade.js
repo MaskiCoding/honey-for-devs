@@ -20,6 +20,7 @@ function grade(task, code) {
       cwd: dir,
       timeout: 20000,
       encoding: "utf8",
+      shell: false,
     });
     const passed = r.status === 0;
     const detail = passed
