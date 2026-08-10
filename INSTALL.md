@@ -155,5 +155,7 @@ curl -fsSL https://raw.githubusercontent.com/Green-PT/honey-for-devs/main/instal
 node bin/install.js --uninstall
 ```
 
-In Claude Code you can also run `/plugin uninstall honey@greenpt`. Per-repo rule
-files you copied are left in place — delete them manually if you want them gone.
+In Claude Code you can also run `/plugin uninstall honey@greenpt`, but that leaves
+the `greenpt` marketplace and its plugin cache behind; `bin/install.js --uninstall`
+removes those too. Per-repo rule files you copied are left in place — delete them
+manually if you want them gone.

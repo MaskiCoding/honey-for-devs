@@ -32,6 +32,8 @@ const SLUG = "Green-PT/honey-for-devs";
 const URL = "https://github.com/" + SLUG;
 const HOME = os.homedir();
 const CLAUDE_DIR = process.env.CLAUDE_CONFIG_DIR || path.join(HOME, ".claude");
+// Heading of the generated AGENTS.md — proves a copied file is ours before we delete it.
+const MARKER = "Honey (I Shrunk the AI)";
 
 // ---- argv -----------------------------------------------------------------
 const argv = process.argv.slice(2);
@@ -67,14 +69,35 @@ const dirExists = (p) => {
 };
 
 const note = (m) => console.log(m);
+// Every command is best-effort so one missing agent can't abort the run — but the
+// count is kept so install() can still exit non-zero (callers, incl. the Mac app,
+// read only the exit code).
+let failures = 0;
 function run(cmd) {
   if (DRY) return note("  [dry-run] $ " + cmd);
   note("  $ " + cmd);
   try {
     cp.execSync(cmd, { stdio: "inherit" });
   } catch (e) {
+    failures++;
     note("  ! command failed (continuing): " + cmd);
   }
+}
+// Delete something we installed. `marker` guards files the user may have authored
+// themselves: only remove when the content is Honey's generated copy.
+function remove(p, marker) {
+  if (DRY) return note("  [dry-run] remove " + p);
+  if (marker !== undefined) {
+    let body;
+    try {
+      body = fs.readFileSync(p, "utf8");
+    } catch {
+      return;
+    }
+    if (!body.includes(marker)) return note("  kept " + p + " (not Honey's copy)");
+  } else if (!fs.existsSync(p)) return;
+  fs.rmSync(p, { recursive: true, force: true });
+  note("  removed " + p);
 }
 function copy(srcRel, destAbs) {
   const src = path.join(REPO, srcRel);
@@ -157,8 +180,14 @@ const CLI_AGENTS = [
       run("claude plugin install honey@greenpt");
       installStatusline();
     },
+    // `claude plugin uninstall` drops the plugin but leaves the marketplace
+    // registration (settings.json extraKnownMarketplaces + plugins/marketplaces/greenpt)
+    // and an orphan plugins/cache/greenpt — both read as "Honey is still here".
     uninstall: () => {
       run("claude plugin uninstall honey@greenpt");
+      run("claude plugin marketplace remove greenpt");
+      remove(path.join(CLAUDE_DIR, "plugins", "cache", "greenpt"));
+      remove(path.join(CLAUDE_DIR, ".honey-active")); // mode flag
       removeStatusline();
     },
   },
@@ -171,7 +200,13 @@ const CLI_AGENTS = [
       note("  then enable honey via Codex `/plugins` UI");
       copy("AGENTS.md", path.join(HOME, ".codex", "AGENTS.md"));
     },
-    uninstall: () => run("codex plugin uninstall honey@greenpt"),
+    // Codex has no `plugin uninstall` — it is `plugin remove`. The install also
+    // copies ~/.codex/AGENTS.md, which nothing else cleans up.
+    uninstall: () => {
+      run("codex plugin remove honey@greenpt");
+      run("codex plugin marketplace remove greenpt");
+      remove(path.join(HOME, ".codex", "AGENTS.md"), MARKER);
+    },
   },
   {
     id: "copilot",
@@ -193,7 +228,9 @@ const CLI_AGENTS = [
   {
     id: "openclaw",
     name: "OpenClaw",
-    detect: () => which("clawhub") || which("openclaw") || dirExists(path.join(HOME, ".openclaw")),
+    // A bare ~/.openclaw is not enough: without the CLI every clawhub command
+    // below fails with "command not found" and the whole run reads as broken.
+    detect: () => which("clawhub") || which("openclaw") || dirExists(path.join(HOME, ".openclaw", "skills")),
     // Native OpenClaw skills via ClawHub. The core skill plus each companion
     // (-review, -design, -gain, …) install separately, mirroring `honey@greenpt`.
     install: () => {
@@ -271,6 +308,10 @@ function install() {
   }
   if (!any) note("\nNo matching agents detected. See --list, or use --only <id>.");
   note("\nDone." + (DRY ? " (dry-run — nothing was written)" : ""));
+  if (failures) {
+    note(failures + " command(s) failed — Honey may be only partly installed.");
+    process.exitCode = 1;
+  }
 }
 
 function uninstall() {
@@ -282,6 +323,9 @@ function uninstall() {
     a.uninstall();
   }
   note("\nPer-repo rule files are left in place — delete them manually if you added any.");
+  // Deliberately still exit 0: on uninstall a failing command usually just means
+  // that piece was already gone.
+  if (failures) note(failures + " command(s) reported nothing to remove.");
   note("Done." + (DRY ? " (dry-run)" : ""));
 }
 
