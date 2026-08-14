@@ -212,6 +212,23 @@ const CLI_AGENTS = [
     },
   },
   {
+    id: "omp",
+    name: "oh-my-pi (omp)",
+    detect: () => which("omp") || dirExists(path.join(HOME, ".omp")),
+    // omp reads Claude Code marketplace catalogs (.claude-plugin/marketplace.json)
+    // as a fallback, so Honey's existing catalog installs as-is.
+    install: () => {
+      run("omp plugin marketplace add " + SLUG);
+      run("omp plugin install honey@greenpt");
+      copy("AGENTS.md", path.join(HOME, ".omp", "agent", "AGENTS.md"));
+    },
+    uninstall: () => {
+      run("omp plugin uninstall honey@greenpt");
+      run("omp plugin marketplace remove greenpt");
+      remove(path.join(HOME, ".omp", "agent", "AGENTS.md"), MARKER);
+    },
+  },
+  {
     id: "copilot",
     name: "GitHub Copilot CLI",
     detect: () => which("copilot"),
