@@ -195,9 +195,12 @@ const CLI_AGENTS = [
     id: "codex",
     name: "Codex",
     detect: () => which("codex") || dirExists(path.join(HOME, ".codex")),
+    // `add`, not `install` — Codex's verb, matching its `remove`. Without it the
+    // marketplace was registered and the plugin never installed, so the only
+    // thing Honey actually delivered to Codex was the AGENTS.md copy below.
     install: () => {
       run("codex plugin marketplace add " + SLUG);
-      note("  then enable honey via Codex `/plugins` UI");
+      run("codex plugin add honey@greenpt");
       copy("AGENTS.md", path.join(HOME, ".codex", "AGENTS.md"));
     },
     // Codex has no `plugin uninstall` — it is `plugin remove`. The install also
