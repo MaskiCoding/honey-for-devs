@@ -70,6 +70,20 @@ Hermes reads natively. Skills aren't always-on in Hermes: activate with
 into your workspace — Hermes reads workspace `AGENTS.md` automatically.
 Manual alternative: `cp -r .hermes/skills/* ~/.hermes/skills/`.
 
+## Option A5 — oh-my-pi (`omp`)
+
+```bash
+omp plugin marketplace add Green-PT/honey-for-devs
+omp plugin install honey@greenpt
+```
+
+omp reads Claude Code marketplace catalogs, so Honey's existing
+[`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json) installs
+as-is — all skills, commands, and agents. Run `/reload-plugins` to pick them up
+without restarting the session. `node bin/install.js --only omp` does the same
+and also copies the root `AGENTS.md` to `~/.omp/agent/AGENTS.md` for always-on
+user-scope context.
+
 ## Option B — One-line installer (all agents)
 
 macOS / Linux / WSL / Git Bash:
@@ -108,7 +122,7 @@ Pass flags through the pipe with `bash -s --`, e.g.
 | `--yes`, `-y` | Skip the wizard; non-interactive auto-detect install |
 | `--all` | Install detected CLI agents + statusline badge |
 | `--minimal` | Plugin/extension installs only; skip the statusline wiring |
-| `--only <id>` | Restrict to one agent (repeatable). IDs: `claude`, `codex`, `copilot`, `gemini`, `cursor`, `windsurf`, `cline`, `copilot-editor`, `opencode`, `openclaw`, `hermes`, `kilo`, `kiro`, `agents` |
+| `--only <id>` | Restrict to one agent (repeatable). IDs: `claude`, `codex`, `omp`, `copilot`, `gemini`, `cursor`, `windsurf`, `cline`, `copilot-editor`, `opencode`, `openclaw`, `hermes`, `kilo`, `kiro`, `agents` |
 | `--with-init` | Also drop editor rule files into the **current directory** |
 | `--dry-run` | Print every action without writing anything (works inside the wizard too) |
 | `--list` | Show the agent matrix and what's detected |

@@ -9,7 +9,7 @@
 cross-tool coding skill that cuts AI coding-agent token usage and LLM API costs —
 making agents emit less code *and* less prose without losing correctness. It works
 with **Claude (claude.ai and the API), Claude Code, Cursor, GitHub Copilot, Codex, Gemini CLI, Windsurf, Cline,
-OpenClaw, Kiro, Kilo Code, and Hermes Agent**. Three independent levers, applied reflexively:
+OpenClaw, oh-my-pi, Kiro, Kilo Code, and Hermes Agent**. Three independent levers, applied reflexively:
 
 1. **Less code** — YAGNI first. Walk a ladder (does it need to exist? → stdlib →
    language native → existing dependency → one line → minimum block) and stop at
@@ -372,7 +372,8 @@ PATH. Safe to re-run; skips tools you don't have.
 | Platform | Install |
 |----------|---------|
 | Claude Code | `/plugin marketplace add Green-PT/honey-for-devs` then `/plugin install honey@greenpt` |
-| Codex | `codex plugin marketplace add Green-PT/honey-for-devs` then enable via `/plugins` |
+| Codex | `codex plugin marketplace add Green-PT/honey-for-devs` then `codex plugin add honey@greenpt` |
+| oh-my-pi (`omp`) | `omp plugin marketplace add Green-PT/honey-for-devs` then `omp plugin install honey@greenpt` |
 | GitHub Copilot CLI | `copilot plugin marketplace add Green-PT/honey-for-devs` then `copilot plugin install honey@greenpt` |
 | Gemini CLI | `gemini extensions install https://github.com/Green-PT/honey-for-devs` |
 | OpenClaw | `clawhub install honey` (companions: `clawhub install honey-review`, …) |
