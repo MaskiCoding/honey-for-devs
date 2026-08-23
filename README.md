@@ -266,7 +266,7 @@ reach for at a specific moment.
 | Name | Kind | What it does |
 |------|------|--------------|
 | `honey` | core skill (always-on) | the three levers, applied reflexively to every response — plus loop cost discipline for recurring `/loop` runs. `/honey [lite\|full\|ultra\|off]` |
-| `honey-chat` | standalone prompt | Honey for plain Claude — the terse-prose core, no tools required. Paste [`skills/honey-chat/SKILL.md`](skills/honey-chat/SKILL.md) into a claude.ai Project's custom instructions, a Style, or an API system prompt (~500 tokens) |
+| `honey-chat` | standalone prompt | Honey for plain chat — the terse-prose core, no tools required. Paste [`skills/honey-chat/SKILL.md`](skills/honey-chat/SKILL.md) into a claude.ai Project's custom instructions, a Style, or an API system prompt (~500 tokens); [`COMPACT.md`](skills/honey-chat/COMPACT.md) (≤1,500 chars) fits ChatGPT/Gemini custom-instruction fields |
 | `honey-design` | satellite skill | for user-facing UI (landing pages, components): keeps the full rendered polish, cuts tokens by writing the design densely (CSS vars, shared classes, `clamp()`) — same pixels, fewer tokens |
 | `honey-review` | satellite skill | review a diff for over-engineering + over-verbosity; terse delete-list |
 | `honey-eco` | satellite skill | this session's CO₂ / $ / tokens saved, from the committed EcoLogits port |
@@ -343,6 +343,15 @@ nothing in it needs tools. Two ways to use it:
 
 On the API, use the file as (part of) your `system` prompt. Pin intensity by
 appending one line: `Default to honey ultra` or `Default to honey lite`.
+
+**Other chat UIs (ChatGPT, Gemini, …):** the prompt is model-agnostic — nothing
+in it is Claude-specific. Web custom-instruction fields often cap input
+(ChatGPT: 1,500 characters), so paste the compact edition,
+[`skills/honey-chat/COMPACT.md`](skills/honey-chat/COMPACT.md) (&le;1,500
+chars, test-guarded), into ChatGPT's "How would you like ChatGPT to respond?"
+field or Gemini's saved-info/instructions field. Same rules, condensed; where
+the field allows more (Claude Projects, API system prompts), prefer the full
+`SKILL.md`.
 
 ### One-line installer (interactive wizard)
 
