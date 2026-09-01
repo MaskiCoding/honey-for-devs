@@ -17,7 +17,7 @@ Read the diff (`git diff` or the named range). Report only what to **cut** and w
 ## Find
 
 - **Over-engineering** (Lever 1) — code that needn't exist: speculative params, "might need it later" branches, single-caller abstractions, hand-rolled `itertools`/`pathlib`/`datetime`, a new dependency for four lines, a reimplemented existing util.
-- **Over-verbosity** (Lever 2) — dead code, commented-out blocks, comments narrating what the code already says, redundant scaffolding.
+- **Over-verbosity** (Lever 2) — dead code, commented-out blocks, all code comments except required, rule-specific disable-comment explanations, redundant scaffolding.
 
 ## Never flag (the carve-out is load-bearing)
 

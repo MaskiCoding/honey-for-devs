@@ -78,10 +78,9 @@ shared function is fewer lines than one guard per call site, *and* it fixes the
 sibling callers the ticket didn't mention. Patching only the named path leaves the
 bug alive and the diff bigger.
 
-**Mark deliberate shortcuts.** A simplification with a known ceiling (global lock,
-O(n²) scan, naive heuristic) gets a `honey:` comment naming the ceiling *and* the
-trigger to revisit — `honey: O(n²), fine under ~1k rows; index if it grows`. Without
-a trigger, "later" means never. `honey-debt` harvests these into a ledger.
+**No code comments.** The code says what it does; a comment is a line every future
+reader pays for. Only exception: a required, rule-specific disable-comment
+explanation.
 
 **Bulk is generated, never typed.** Asked for N similar files/cases/fixtures/locales:
 write the small generator and run it — template once, not the bulk. Skip when the

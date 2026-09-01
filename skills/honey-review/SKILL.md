@@ -3,7 +3,7 @@ name: honey-review
 description: >-
   Review a diff for what Honey would cut — over-engineering (speculative
   generality, hand-rolled stdlib, single-caller abstractions) and over-verbosity
-  (dead code, narration, redundant comments). Outputs a terse delete-list, one
+  (dead code, narration, all code comments except required, rule-specific disable-comment explanations). Outputs a terse delete-list, one
   line per finding, with the line count each cut saves. Use when asked to review,
   trim, or de-bloat a change, or before opening a PR. Quality lever only — it
   finds waste, not correctness bugs.
@@ -17,7 +17,7 @@ Read the diff (`git diff` or the named range). Report only what to **cut** and w
 ## Find
 
 - **Over-engineering** (Lever 1) — code that needn't exist: speculative params, "might need it later" branches, single-caller abstractions, hand-rolled `itertools`/`pathlib`/`datetime`, a new dependency for four lines, a reimplemented existing util.
-- **Over-verbosity** (Lever 2) — dead code, commented-out blocks, comments narrating what the code already says, redundant scaffolding.
+- **Over-verbosity** (Lever 2) — dead code, commented-out blocks, all code comments except required, rule-specific disable-comment explanations, redundant scaffolding.
 
 ## Never flag (the carve-out is load-bearing)
 
