@@ -179,9 +179,7 @@ for less, don't crush what you fetched.
   you need — the outline answers most where/what questions without paying for the file.
 - **Don't re-read or re-paste what's already in context** — reference it. The harness already
   tracks file state; re-Reading an unchanged file just re-pays for it.
-- **Offload bulk you must keep but mostly skim.** `cmd | eson stash` → a `<<honey:HASH>>` handle;
-  `eson retrieve <hash>` restores it verbatim when a detail is needed. (Lossy-skim variant for
-  huge uniform arrays: `eson crush`.) Reference the handle instead of pasting the blob again.
+
 - **Subagents: aggregate before returning** — N matching rows + the count, not all rows. Their
   return is itself a Lever-3 handoff: columnar/minified.
 - **ultra only — image-rendered reads (PX).** At ultra intensity, read big dense *read-only*
